@@ -1,0 +1,4 @@
+MPC_SHA1/*.o
+MPC_SHA1/*.bin
+MPC_SHA1/mpc_sha1
+MPC_SHA1/mpc_sha1_verifier

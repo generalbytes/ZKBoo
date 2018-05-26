@@ -1,0 +1,5 @@
+clang-omp -c -o MPC_SHA1.o MPC_SHA1.c -I/usr/local/Cellar/openssl/1.0.2o_1/include -I/usr/local/opt/llvm/include -fopenmp
+clang-omp -c -o MPC_SHA1_VERIFIER.o MPC_SHA1_VERIFIER.c  -I/usr/local/Cellar/openssl/1.0.2o_1/include -I/usr/local/opt/llvm/include -fopenmp                                 (master*)
+
+clang-omp -L/usr/local/opt/llvm/lib -L/usr/local/Cellar/openssl/1.0.2o_1/lib  -o mpc_sha1_verifier MPC_SHA1_VERIFIER.o  -I/usr/local/Cellar/openssl/1.0.2o_1/include -I/usr/local/opt/llvm/include -fopenmp  -lcrypto
+clang-omp -L/usr/local/opt/llvm/lib -L/usr/local/Cellar/openssl/1.0.2o_1/lib  -o mpc_sha1 MPC_SHA1.o  -I/usr/local/Cellar/openssl/1.0.2o_1/include -I/usr/local/opt/llvm/include -fopenmp  -lcrypto
