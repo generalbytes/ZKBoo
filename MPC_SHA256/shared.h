@@ -48,7 +48,7 @@ typedef struct {
 
 typedef struct {
 	uint32_t yp[3][8];
-	unsigned char h[3][32];
+	unsigned char h[3][32]; //possible hashes to compare of z
 } a;
 
 typedef struct {
@@ -122,7 +122,7 @@ void cleanup_EVP() {
 	ERR_free_strings();
 }
 
-void H(unsigned char k[16], View v, unsigned char r[4], unsigned char hash[SHA256_DIGEST_LENGTH]) {
+void H(unsigned char k[16], View v, unsigned char r[4], unsigned char hash[SHA256_DIGEST_LENGTH]) { //calculates sha256 from whole k,v and r
 	SHA256_CTX ctx;
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, k, 16);
@@ -132,7 +132,7 @@ void H(unsigned char k[16], View v, unsigned char r[4], unsigned char hash[SHA25
 }
 
 
-void H3(uint32_t y[8], a* as, int s, int* es) {
+void H3(uint32_t y[8], a* as, int s, int* es) { //caluclate sha256 of y and all ases(all rounds). Fills Es based on hashes.
 
 	unsigned char hash[SHA256_DIGEST_LENGTH];
 	SHA256_CTX ctx;
@@ -145,14 +145,14 @@ void H3(uint32_t y[8], a* as, int s, int* es) {
 	int i = 0;
 	int bitTracker = 0;
 	while(i < s) {
-		if(bitTracker >= SHA256_DIGEST_LENGTH*8) { //Generate new hash as we have run out of bits in the previous hash
+		if(bitTracker >= SHA256_DIGEST_LENGTH * 8) { //Generate new hash as we have run out of bits in the previous hash
 			SHA256_Init(&ctx);
 			SHA256_Update(&ctx, hash, sizeof(hash));
 			SHA256_Final(hash, &ctx);
 			bitTracker = 0;
 		}
 
-		int b1 = GETBIT(hash[bitTracker/8], bitTracker % 8);
+		int b1 = GETBIT(hash[(bitTracker+0)/8], (bitTracker+0) % 8);
 		int b2 = GETBIT(hash[(bitTracker+1)/8], (bitTracker+1) % 8);
 		if(b1 == 0) {
 			if(b2 == 0) {
@@ -329,16 +329,16 @@ int mpc_CH_verify(uint32_t e[2], uint32_t f[2], uint32_t g[2], uint32_t z[2], Vi
 
 int verify(a a, int e, z z) {
 	unsigned char* hash = malloc(SHA256_DIGEST_LENGTH);
-	H(z.ke, z.ve, z.re, hash);
+	H(z.ke, z.ve, z.re, hash); //calculate hash from z.ke, z.ve a z.re
 
-	if (memcmp(a.h[e], hash, 32) != 0) {
+	if (memcmp(a.h[e], hash, 32) != 0) { //check if hash is a.h[e]
 #if VERBOSE
 		printf("Failing at %d", __LINE__);
 #endif
 		return 1;
 	}
-	H(z.ke1, z.ve1, z.re1, hash);
-	if (memcmp(a.h[(e + 1) % 3], hash, 32) != 0) {
+	H(z.ke1, z.ve1, z.re1, hash); //calculate hash from z.ke1, z.ve1 a z.re1
+	if (memcmp(a.h[(e + 1) % 3], hash, 32) != 0) { //check if hash is a.h[(e+1) % 3]
 #if VERBOSE
 		printf("Failing at %d", __LINE__);
 #endif
@@ -348,14 +348,14 @@ int verify(a a, int e, z z) {
 
 	uint32_t* result = malloc(32);
 	output(z.ve, result);
-	if (memcmp(a.yp[e], result, 32) != 0) {
+	if (memcmp(a.yp[e], result, 32) != 0) { //a.yp[e] must contain same thing as z.ve.y[ySize - 8]
 #if VERBOSE
 		printf("Failing at %d", __LINE__);
 #endif
 		return 1;
 	}
 
-	output(z.ve1, result);
+	output(z.ve1, result); //a.yp[e+1] must contain same thing as z.ve.y[ySize - 8]
 	if (memcmp(a.yp[(e + 1) % 3], result, 32) != 0) {
 #if VERBOSE
 		printf("Failing at %d", __LINE__);

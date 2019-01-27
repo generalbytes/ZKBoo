@@ -30,13 +30,14 @@ int main(void) {
 	setbuf(stdout, NULL);
 	init_EVP();
 	openmp_thread_setup();
-	
+
 	printf("Iterations of SHA: %d\n", NUM_ROUNDS);
 	
 	a as[NUM_ROUNDS];
 	z zs[NUM_ROUNDS];
-	FILE *file;
 
+	//Read all as and zs from file
+	FILE *file;
 	char outputFile[3*sizeof(int) + 8];
 	sprintf(outputFile, "out%i.bin", NUM_ROUNDS);
 	file = fopen(outputFile, "rb");
@@ -47,21 +48,27 @@ int main(void) {
 	fread(&zs, sizeof(z), NUM_ROUNDS, file);
 	fclose(file);
 
-	uint32_t y[8];
-	reconstruct(as[0].yp[0],as[0].yp[1],as[0].yp[2],y);
+	uint32_t y[8]; //contains hash
+
+	reconstruct( //xoring yps will get result = y = hash
+		as[0].yp[0],
+		as[0].yp[1],
+		as[0].yp[2],
+		y);
+
 	printf("Proof for hash: ");
 	for(int i=0;i<8;i++) {
-		printf("%02X", y[i]);
+		printf("%02x", y[i]);
 	}
 	printf("\n");
 
 	int es[NUM_ROUNDS];
-	H3(y, as, NUM_ROUNDS, es);
+	H3(y, as, NUM_ROUNDS, es); //calculate Es for all rounds
 
 
 	#pragma omp parallel for
 	for(int i = 0; i<NUM_ROUNDS; i++) {
-		int verifyResult = verify(as[i], es[i], zs[i]);
+		int verifyResult = verify(as[i], es[i], zs[i]); //call verify for each round
 		if (verifyResult != 0) {
 			printf("Not Verified %d\n", i);
 		}
