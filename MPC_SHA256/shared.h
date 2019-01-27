@@ -20,7 +20,7 @@
 #include <openssl/rand.h>
 #include "omp.h"
 
-#define VERBOSE FALSE
+#define VERBOSE TRUE
 
 static const uint32_t hA[8] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
 		0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 };
@@ -65,8 +65,6 @@ typedef struct {
 #define SETBIT(x, i, b)   x= (b)&1 ? (x)|(1 << (i)) : (x)&(~(1 << (i)))
 
 
-
-
 void handleErrors(void)
 {
 	ERR_print_errors_fp(stderr);
@@ -77,7 +75,6 @@ void handleErrors(void)
 EVP_CIPHER_CTX* setupAES(unsigned char key[16]) {
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 	EVP_CIPHER_CTX_init(ctx);
-
 
 	/* A 128 bit IV */
 	unsigned char *iv = (unsigned char *)"01234567890123456";
@@ -247,7 +244,10 @@ void openmp_thread_cleanup(void)
 
 
 int mpc_AND_verify(uint32_t x[2], uint32_t y[2], uint32_t z[2], View ve, View ve1, unsigned char randomness[2][2912], int* randCount, int* countY) {
-	uint32_t r[2] = { getRandom32(randomness[0], *randCount), getRandom32(randomness[1], *randCount) };
+	uint32_t r[2] = {
+		 getRandom32(randomness[0], *randCount),
+		 getRandom32(randomness[1], *randCount)
+	};
 	*randCount += 4;
 
 	uint32_t t = 0;
@@ -269,7 +269,6 @@ int mpc_ADD_verify(uint32_t x[2], uint32_t y[2], uint32_t z[2], View ve, View ve
 	*randCount += 4;
 
 	uint8_t a[2], b[2];
-
 	uint8_t t;
 
 	for(int i=0;i<31;i++)
@@ -324,8 +323,6 @@ int mpc_CH_verify(uint32_t e[2], uint32_t f[2], uint32_t g[2], uint32_t z[2], Vi
 		return 1;
 	}
 	mpc_XOR2(t0,g,z);
-
-
 	return 0;
 }
 
@@ -422,7 +419,6 @@ int verify(a a, int e, z z) {
 #endif
 			return 1;
 		}
-
 	}
 
 
@@ -600,7 +596,6 @@ int verify(a a, int e, z z) {
 
 	free(randCount);
 	free(countY);
-
 	return 0;
 }
 

@@ -22,7 +22,6 @@ void printbits(uint32_t n) {
 		printbits(n >> 1);
 		printf("%d", n & 1);
 	}
-
 }
 
 
@@ -33,8 +32,6 @@ int main(void) {
 	openmp_thread_setup();
 	
 	printf("Iterations of SHA: %d\n", NUM_ROUNDS);
-
-	clock_t begin = clock(), delta, deltaFiles;
 	
 	a as[NUM_ROUNDS];
 	z zs[NUM_ROUNDS];
@@ -50,7 +47,6 @@ int main(void) {
 	fread(&zs, sizeof(z), NUM_ROUNDS, file);
 	fclose(file);
 
-
 	uint32_t y[8];
 	reconstruct(as[0].yp[0],as[0].yp[1],as[0].yp[2],y);
 	printf("Proof for hash: ");
@@ -59,20 +55,10 @@ int main(void) {
 	}
 	printf("\n");
 
-	deltaFiles = clock() - begin;
-	int inMilliFiles = deltaFiles * 1000 / CLOCKS_PER_SEC;
-	printf("Loading files: %ju\n", (uintmax_t)inMilliFiles);
-
-
-	clock_t beginE = clock(), deltaE;
 	int es[NUM_ROUNDS];
 	H3(y, as, NUM_ROUNDS, es);
-	deltaE = clock() - beginE;
-	int inMilliE = deltaE * 1000 / CLOCKS_PER_SEC;
-	printf("Generating E: %ju\n", (uintmax_t)inMilliE);
 
 
-	clock_t beginV = clock(), deltaV;
 	#pragma omp parallel for
 	for(int i = 0; i<NUM_ROUNDS; i++) {
 		int verifyResult = verify(as[i], es[i], zs[i]);
@@ -80,19 +66,6 @@ int main(void) {
 			printf("Not Verified %d\n", i);
 		}
 	}
-	deltaV = clock() - beginV;
-	int inMilliV = deltaV * 1000 / CLOCKS_PER_SEC;
-	printf("Verifying: %ju\n", (uintmax_t)inMilliV);
-	
-	
-	delta = clock() - begin;
-	int inMilli = delta * 1000 / CLOCKS_PER_SEC;
-
-	printf("Total time: %ju\n", (uintmax_t)inMilli);
-	
-
-
-
 	openmp_thread_cleanup();
 	cleanup_EVP();
 	return EXIT_SUCCESS;
