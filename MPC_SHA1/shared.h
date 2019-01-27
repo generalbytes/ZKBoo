@@ -75,9 +75,9 @@ void handleErrors(void)
 }
 
 
-EVP_CIPHER_CTX setupAES(unsigned char key[16]) {
-	EVP_CIPHER_CTX ctx;
-	EVP_CIPHER_CTX_init(&ctx);
+EVP_CIPHER_CTX* setupAES(unsigned char key[16]) {
+	EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+	EVP_CIPHER_CTX_init(ctx);
 
 	///* A 128 bit key */
 	//unsigned char *key = (unsigned char *)"01234567890123456";
@@ -93,7 +93,7 @@ EVP_CIPHER_CTX setupAES(unsigned char key[16]) {
 	 * In this example we are using 256 bit AES (i.e. a 256 bit key). The
 	 * IV size for *most* modes is the same as the block size. For AES this
 	 * is 128 bits */
-	if(1 != EVP_EncryptInit_ex(&ctx, EVP_aes_128_ctr(), NULL, key, iv))
+	if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_ctr(), NULL, key, iv))
 		handleErrors();
 
 	return ctx;
@@ -105,17 +105,17 @@ void getAllRandomness(unsigned char key[16], unsigned char randomness[1472]) {
 	//Generate randomness: We use 365*32 bit of randomness per key.
 	//Since AES block size is 128 bit, we need to run 365*32/128 = 91.25 iterations. Let's just round up.
 
-	EVP_CIPHER_CTX ctx;
+	EVP_CIPHER_CTX* ctx;
 	ctx = setupAES(key);
 	unsigned char *plaintext =
 			(unsigned char *)"0000000000000000";
 	int len;
 	for(int j=0;j<92;j++) {
-		if(1 != EVP_EncryptUpdate(&ctx, &randomness[j*16], &len, plaintext, strlen ((char *)plaintext)))
+		if(1 != EVP_EncryptUpdate(ctx, &randomness[j*16], &len, plaintext, strlen ((char *)plaintext)))
 			handleErrors();
 
 	}
-	EVP_CIPHER_CTX_cleanup(&ctx);
+	EVP_CIPHER_CTX_cleanup(ctx);
 }
 
 uint32_t getRandom32(unsigned char randomness[1472], int randCount) {
