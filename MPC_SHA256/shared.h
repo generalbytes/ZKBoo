@@ -9,6 +9,7 @@
 
 #ifndef SHARED_H_
 #define SHARED_H_
+#include <string.h>
 #include <openssl/sha.h>
 #include <openssl/conf.h>
 #include <openssl/evp.h>
