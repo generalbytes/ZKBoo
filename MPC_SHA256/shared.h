@@ -42,6 +42,7 @@ static const uint32_t k[64] = { 0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
 #define ySize 736
 
 #define NUM_BRANCHES 3
+#define TWO_BRANCHES 2
 
 typedef struct {
 	unsigned char x[64];
@@ -191,12 +192,12 @@ void reconstruct(uint32_t* y0, uint32_t* y1, uint32_t* y2, uint32_t* result) {
 	}
 }
 
-void mpc_XOR2(uint32_t x[2], uint32_t y[2], uint32_t z[2]) {
+void mpc_XOR2(uint32_t x[TWO_BRANCHES], uint32_t y[TWO_BRANCHES], uint32_t z[TWO_BRANCHES]) {
 	z[0] = x[0] ^ y[0];
 	z[1] = x[1] ^ y[1];
 }
 
-void mpc_NEGATE2(uint32_t x[2], uint32_t z[2]) {
+void mpc_NEGATE2(uint32_t x[TWO_BRANCHES], uint32_t z[TWO_BRANCHES]) {
 	z[0] = ~x[0];
 	z[1] = ~x[1];
 }
@@ -247,8 +248,8 @@ void openmp_thread_cleanup(void)
 }
 
 
-int mpc_AND_verify(uint32_t x[2], uint32_t y[2], uint32_t z[2], View ve, View ve1, unsigned char randomness[2][2912], int* randCount, int* countY) {
-	uint32_t r[2] = {
+int mpc_AND_verify(uint32_t x[TWO_BRANCHES], uint32_t y[TWO_BRANCHES], uint32_t z[TWO_BRANCHES], View ve, View ve1, unsigned char randomness[TWO_BRANCHES][2912], int* randCount, int* countY) {
+	uint32_t r[TWO_BRANCHES] = {
 		 getRandom32(randomness[0], *randCount),
 		 getRandom32(randomness[1], *randCount)
 	};
@@ -268,20 +269,23 @@ int mpc_AND_verify(uint32_t x[2], uint32_t y[2], uint32_t z[2], View ve, View ve
 }
 
 
-int mpc_ADD_verify(uint32_t x[2], uint32_t y[2], uint32_t z[2], View ve, View ve1, unsigned char randomness[2][2912], int* randCount, int* countY) {
-	uint32_t r[2] = { getRandom32(randomness[0], *randCount), getRandom32(randomness[1], *randCount) };
+int mpc_ADD_verify(uint32_t x[TWO_BRANCHES], uint32_t y[TWO_BRANCHES], uint32_t z[TWO_BRANCHES], View ve, View ve1, unsigned char randomness[TWO_BRANCHES][2912], int* randCount, int* countY) {
+	uint32_t r[TWO_BRANCHES] = {
+		 getRandom32(randomness[0], *randCount),
+		 getRandom32(randomness[1], *randCount)
+	};
 	*randCount += 4;
 
-	uint8_t a[2], b[2];
+	uint8_t a[TWO_BRANCHES], b[TWO_BRANCHES];
 	uint8_t t;
 
 	for(int i=0;i<31;i++)
 	{
-		a[0]=GETBIT(x[0]^ve.y[*countY],i);
-		a[1]=GETBIT(x[1]^ve1.y[*countY],i);
+		a[0]=GETBIT(x[0] ^  ve.y[*countY], i);
+		a[1]=GETBIT(x[1] ^ ve1.y[*countY], i);
 
-		b[0]=GETBIT(y[0]^ve.y[*countY],i);
-		b[1]=GETBIT(y[1]^ve1.y[*countY],i);
+		b[0]=GETBIT(y[0] ^  ve.y[*countY], i);
+		b[1]=GETBIT(y[1] ^ ve1.y[*countY], i);
 
 		t = (a[0]&b[1]) ^ (a[1]&b[0]) ^ GETBIT(r[1],i);
 		if(GETBIT(ve.y[*countY],i+1) != (t ^ (a[0]&b[0]) ^ GETBIT(ve.y[*countY],i) ^ GETBIT(r[0],i))) {
@@ -289,24 +293,24 @@ int mpc_ADD_verify(uint32_t x[2], uint32_t y[2], uint32_t z[2], View ve, View ve
 		}
 	}
 
-	z[0]=x[0]^y[0]^ve.y[*countY];
-	z[1]=x[1]^y[1]^ve1.y[*countY];
+	z[0]=x[0]^y[0] ^  ve.y[*countY];
+	z[1]=x[1]^y[1] ^ ve1.y[*countY];
 	(*countY)++;
 	return 0;
 }
 
-void mpc_RIGHTROTATE2(uint32_t x[], int i, uint32_t z[]) {
-	z[0] = RIGHTROTATE(x[0], i);
-	z[1] = RIGHTROTATE(x[1], i);
+void mpc_RIGHTROTATE2(uint32_t x[TWO_BRANCHES], int bits, uint32_t z[TWO_BRANCHES]) {
+	z[0] = RIGHTROTATE(x[0], bits);
+	z[1] = RIGHTROTATE(x[1], bits);
 }
 
-void mpc_RIGHTSHIFT2(uint32_t x[2], int i, uint32_t z[2]) {
-	z[0] = x[0] >> i;
-	z[1] = x[1] >> i;
+void mpc_RIGHTSHIFT2(uint32_t x[TWO_BRANCHES], int bits, uint32_t z[TWO_BRANCHES]) {
+	z[0] = x[0] >> bits;
+	z[1] = x[1] >> bits;
 }
 
 
-int mpc_MAJ_verify(uint32_t a[2], uint32_t b[2], uint32_t c[2], uint32_t z[NUM_BRANCHES], View ve, View ve1, unsigned char randomness[2][2912], int* randCount, int* countY) {
+int mpc_MAJ_verify(uint32_t a[TWO_BRANCHES], uint32_t b[TWO_BRANCHES], uint32_t c[TWO_BRANCHES], uint32_t z[NUM_BRANCHES], View ve, View ve1, unsigned char randomness[TWO_BRANCHES][2912], int* randCount, int* countY) {
 	uint32_t t0[NUM_BRANCHES];
 	uint32_t t1[NUM_BRANCHES];
 
@@ -319,7 +323,7 @@ int mpc_MAJ_verify(uint32_t a[2], uint32_t b[2], uint32_t c[2], uint32_t z[NUM_B
 	return 0;
 }
 
-int mpc_CH_verify(uint32_t e[2], uint32_t f[2], uint32_t g[2], uint32_t z[2], View ve, View ve1, unsigned char randomness[2][2912], int* randCount, int* countY) {
+int mpc_CH_verify(uint32_t e[TWO_BRANCHES], uint32_t f[TWO_BRANCHES], uint32_t g[TWO_BRANCHES], uint32_t z[TWO_BRANCHES], View ve, View ve1, unsigned char randomness[TWO_BRANCHES][2912], int* randCount, int* countY) {
 
 	uint32_t t0[NUM_BRANCHES];
 	mpc_XOR2(f,g,t0);
@@ -369,14 +373,14 @@ int verify(a a, int e, z z) {
 
 	free(result);
 
-	unsigned char randomness[2][2912];
-	getAllRandomness(z.ke, randomness[0]);
+	unsigned char randomness[TWO_BRANCHES][2912];
+	getAllRandomness(z.ke,  randomness[0]);
 	getAllRandomness(z.ke1, randomness[1]);
 
 	int* randCount = calloc(1, sizeof(int));
-	int* countY = calloc(1, sizeof(int));
+	int* countY    = calloc(1, sizeof(int));
 
-	uint32_t w[64][2];
+	uint32_t w[64][TWO_BRANCHES];
 	for (int j = 0; j < 16; j++) {
 		w[j][0] = (z.ve.x[j * 4] << 24) | (z.ve.x[j * 4 + 1] << 16)
 								| (z.ve.x[j * 4 + 2] << 8) | z.ve.x[j * 4 + 3];
@@ -384,8 +388,8 @@ int verify(a a, int e, z z) {
 								| (z.ve1.x[j * 4 + 2] << 8) | z.ve1.x[j * 4 + 3];
 	}
 
-	uint32_t s0[2], s1[2];
-	uint32_t t0[2], t1[2];
+	uint32_t s0[TWO_BRANCHES], s1[TWO_BRANCHES];
+	uint32_t t0[TWO_BRANCHES], t1[TWO_BRANCHES];
 	for (int j = 16; j < 64; j++) {
 		//s0[i] = RIGHTROTATE(w[i][j-15],7) ^ RIGHTROTATE(w[i][j-15],18) ^ (w[i][j-15] >> 3);
 		mpc_RIGHTROTATE2(w[j-15], 7, t0);
@@ -427,14 +431,14 @@ int verify(a a, int e, z z) {
 
 
 
-	uint32_t va[2] = { hA[0],hA[0] };
-	uint32_t vb[2] = { hA[1],hA[1] };
-	uint32_t vc[2] = { hA[2],hA[2] };
-	uint32_t vd[2] = { hA[3],hA[3] };
-	uint32_t ve[2] = { hA[4],hA[4] };
-	uint32_t vf[2] = { hA[5],hA[5] };
-	uint32_t vg[2] = { hA[6],hA[6] };
-	uint32_t vh[2] = { hA[7],hA[7] };
+	uint32_t va[TWO_BRANCHES] = { hA[0],hA[0] };
+	uint32_t vb[TWO_BRANCHES] = { hA[1],hA[1] };
+	uint32_t vc[TWO_BRANCHES] = { hA[2],hA[2] };
+	uint32_t vd[TWO_BRANCHES] = { hA[3],hA[3] };
+	uint32_t ve[TWO_BRANCHES] = { hA[4],hA[4] };
+	uint32_t vf[TWO_BRANCHES] = { hA[5],hA[5] };
+	uint32_t vg[TWO_BRANCHES] = { hA[6],hA[6] };
+	uint32_t vh[TWO_BRANCHES] = { hA[7],hA[7] };
 	uint32_t temp1[NUM_BRANCHES], temp2[NUM_BRANCHES], maj[NUM_BRANCHES];
 	for (int i = 0; i < 64; i++) {
 		//s1 = RIGHTROTATE(e,6) ^ RIGHTROTATE(e,11) ^ RIGHTROTATE(e,25);
@@ -523,9 +527,9 @@ int verify(a a, int e, z z) {
 
 
 
-		memcpy(vh, vg, sizeof(uint32_t) * 2);
-		memcpy(vg, vf, sizeof(uint32_t) * 2);
-		memcpy(vf, ve, sizeof(uint32_t) * 2);
+		memcpy(vh, vg, sizeof(uint32_t) * TWO_BRANCHES);
+		memcpy(vg, vf, sizeof(uint32_t) * TWO_BRANCHES);
+		memcpy(vf, ve, sizeof(uint32_t) * TWO_BRANCHES);
 		//e = d+temp1;
 		if(mpc_ADD_verify(vd, temp1, ve, z.ve, z.ve1, randomness, randCount, countY) == 1) {
 #if VERBOSE
@@ -534,9 +538,9 @@ int verify(a a, int e, z z) {
 			return 1;
 		}
 
-		memcpy(vd, vc, sizeof(uint32_t) * 2);
-		memcpy(vc, vb, sizeof(uint32_t) * 2);
-		memcpy(vb, va, sizeof(uint32_t) * 2);
+		memcpy(vd, vc, sizeof(uint32_t) * TWO_BRANCHES);
+		memcpy(vc, vb, sizeof(uint32_t) * TWO_BRANCHES);
+		memcpy(vb, va, sizeof(uint32_t) * TWO_BRANCHES);
 		//a = temp1+temp2;
 
 		if(mpc_ADD_verify(temp1, temp2, va, z.ve, z.ve1, randomness, randCount, countY) == 1) {
