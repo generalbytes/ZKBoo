@@ -39,8 +39,12 @@ static const uint32_t k[64] = { 0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
 		0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814,
 		0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2 };
 
+//736 because that is how many times AND or ADD is called and ys need to be saved
 #define ySize 736
 
+#define DEBUG 0
+#define debug_print(fmt, ...) \
+            do { if (DEBUG) printf(fmt, __VA_ARGS__); } while (0)
 #define NUM_BRANCHES 3
 #define TWO_BRANCHES 2
 
@@ -255,6 +259,7 @@ int mpc_AND_verify(uint32_t x[TWO_BRANCHES], uint32_t y[TWO_BRANCHES], uint32_t 
 	z[1] = ve1.y[*countY];
 
 	(*countY)++;
+	debug_print("countY increased by mpc_AND_verify to %d.\n",(*countY));
 	return 0;
 }
 
@@ -287,6 +292,7 @@ int mpc_ADD_verify(uint32_t x[TWO_BRANCHES], uint32_t y[TWO_BRANCHES], uint32_t 
 	z[0]=x[0]^y[0] ^  ve.y[*countY];
 	z[1]=x[1]^y[1] ^ ve1.y[*countY];
 	(*countY)++;
+	debug_print("countY increased by mpc_ADD_verify to %d.\n",(*countY));
 	return 0;
 }
 

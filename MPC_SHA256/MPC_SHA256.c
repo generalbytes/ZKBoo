@@ -42,22 +42,26 @@ void mpc_AND(uint32_t x[NUM_BRANCHES], uint32_t y[NUM_BRANCHES], uint32_t z[NUM_
 		 getRandom32(randomness[1], *randCount),
 		 getRandom32(randomness[2], *randCount)
 	};
-	*randCount += 4;
+	*randCount += 4; //4 bytes because we are pulling out 32bit number (8 * 4 = 32)
 	uint32_t t[NUM_BRANCHES] = { 0 };
 
 	t[0] = (x[0] & y[1]) ^ (x[1] & y[0]) ^ (x[0] & y[0]) ^ r[0] ^ r[1];
 	t[1] = (x[1] & y[2]) ^ (x[2] & y[1]) ^ (x[1] & y[1]) ^ r[1] ^ r[2];
 	t[2] = (x[2] & y[0]) ^ (x[0] & y[2]) ^ (x[2] & y[2]) ^ r[2] ^ r[0];
+	
 	z[0] = t[0];
 	z[1] = t[1];
 	z[2] = t[2];
+	
 	views[0].y[*countY] = z[0];
 	views[1].y[*countY] = z[1];
 	views[2].y[*countY] = z[2];
+	
 	(*countY)++;
+	debug_print("countY increased by mpc_AND to %d.\n",(*countY));
 }
 
-void mpc_NEGATE(uint32_t x[NUM_BRANCHES], uint32_t z[NUM_BRANCHES]) {
+void mpc_NEGATE(uint32_t x[NUM_BRANCHES], uint32_t z[NUM_BRANCHES]) { //just negates bits
 	z[0] = ~x[0];
 	z[1] = ~x[1];
 	z[2] = ~x[2];
@@ -70,7 +74,7 @@ void mpc_ADD(uint32_t x[NUM_BRANCHES], uint32_t y[NUM_BRANCHES], uint32_t z[NUM_
 		getRandom32(randomness[1], *randCount),
 		getRandom32(randomness[2], *randCount)
 	};
-	*randCount += 4;
+	*randCount += 4; //4 bytes because we are pulling out 32bit number (8 * 4 = 32)
 
 	uint8_t a[NUM_BRANCHES];
 	uint8_t b[NUM_BRANCHES];
@@ -86,24 +90,26 @@ void mpc_ADD(uint32_t x[NUM_BRANCHES], uint32_t y[NUM_BRANCHES], uint32_t z[NUM_
 		b[1]=GETBIT(y[1] ^ c[1], i);
 		b[2]=GETBIT(y[2] ^ c[2], i);
 
-		t = (a[0]&b[1]) ^ (a[1]&b[0]) ^ GETBIT(r[1],i);
-		SETBIT(c[0],i+1, t ^ (a[0]&b[0]) ^ GETBIT(c[0],i) ^ GETBIT(r[0],i));
+		t = (a[0] & b[1]) ^ (a[1] & b[0]) ^ GETBIT(r[1],i);
+		SETBIT(c[0], i+1, t ^ (a[0] & b[0]) ^ GETBIT(c[0],i) ^ GETBIT(r[0],i));
 
-		t = (a[1]&b[2]) ^ (a[2]&b[1]) ^ GETBIT(r[2],i);
-		SETBIT(c[1],i+1, t ^ (a[1]&b[1]) ^ GETBIT(c[1],i) ^ GETBIT(r[1],i));
+		t = (a[1] & b[2]) ^ (a[2] & b[1]) ^ GETBIT(r[2], i);
+		SETBIT(c[1], i+1, t ^ (a[1] & b[1]) ^ GETBIT(c[1], i) ^ GETBIT(r[1],i));
 
-		t = (a[2]&b[0]) ^ (a[0]&b[2]) ^ GETBIT(r[0],i);
-		SETBIT(c[2],i+1, t ^ (a[2]&b[2]) ^ GETBIT(c[2],i) ^ GETBIT(r[2],i));
+		t = (a[2] & b[0]) ^ (a[0] & b[2]) ^ GETBIT(r[0], i);
+		SETBIT(c[2], i+1, t ^ (a[2] & b[2]) ^ GETBIT(c[2],i) ^ GETBIT(r[2],i));
 	}
 
-	z[0]=x[0]^y[0]^c[0];
-	z[1]=x[1]^y[1]^c[1];
-	z[2]=x[2]^y[2]^c[2];
+	z[0]=x[0] ^ y[0] ^ c[0];
+	z[1]=x[1] ^ y[1] ^ c[1];
+	z[2]=x[2] ^ y[2] ^ c[2];
 
 	views[0].y[*countY] = c[0];
 	views[1].y[*countY] = c[1];
 	views[2].y[*countY] = c[2];
 	*countY += 1;
+	debug_print("countY increased by mpc_ADD to %d.\n",(*countY));
+
 }
 
 
@@ -114,7 +120,7 @@ void mpc_ADDK(uint32_t x[NUM_BRANCHES], uint32_t y, uint32_t z[NUM_BRANCHES], un
 		getRandom32(randomness[1], *randCount), 
 		getRandom32(randomness[2], *randCount)
 	};
-	*randCount += 4;
+	*randCount += 4; //4 bytes because we are pulling out 32bit number (8 * 4 = 32)
 
 	uint8_t a[NUM_BRANCHES], b[NUM_BRANCHES];
 
@@ -149,6 +155,7 @@ void mpc_ADDK(uint32_t x[NUM_BRANCHES], uint32_t y, uint32_t z[NUM_BRANCHES], un
 	views[1].y[*countY] = c[1];
 	views[2].y[*countY] = c[2];
 	*countY += 1;
+	debug_print("countY increased by mpc_ADDK to %d.\n", (*countY));
 }
 
 
@@ -464,6 +471,8 @@ a commit(int inputLen,unsigned char shares[NUM_BRANCHES][inputLen], unsigned cha
 
 	int* countY = calloc(1, sizeof(int));
 	*countY = 0;
+	debug_print("countY set to %d.\n", (*countY));
+
 	mpc_sha256(hashes, inputs, inputLen * 8, randomness, views, countY);
 	//countY is after calling mpc_sha256 728
 
@@ -473,6 +482,7 @@ a commit(int inputLen,unsigned char shares[NUM_BRANCHES][inputLen], unsigned cha
 		views[1].y[*countY] = (hashes[1][i * 4] << 24) | (hashes[1][i * 4 + 1] << 16) | (hashes[1][i * 4 + 2] << 8) | hashes[1][i * 4 + 3]; //32bit number
 		views[2].y[*countY] = (hashes[2][i * 4] << 24) | (hashes[2][i * 4 + 1] << 16) | (hashes[2][i * 4 + 2] << 8) | hashes[2][i * 4 + 3]; //32bit number
 		*countY += 1;
+		debug_print("countY increased by commit to %d.\n",(*countY));
 	}
 	free(countY);
 	free(hashes[0]);
