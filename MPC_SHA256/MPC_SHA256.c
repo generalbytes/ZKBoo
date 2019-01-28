@@ -588,12 +588,12 @@ int main(void) {
 	char userInput[55]; //55 is max length as we only support 447 bits = 55.875 bytes
 	fgets(userInput, sizeof(userInput), stdin);
 	
-	int i = strlen(userInput)-1;  //user input len
-	printf("String length: %d\n", i);
+	int inputLen = strlen(userInput)-1;  //user input len
+	printf("String length: %d\n", inputLen);
 	printf("Iterations of SHA: %d\n", NUM_ROUNDS);
 
-	unsigned char input[i];
-	for(int j = 0; j<i; j++) {
+	unsigned char input[inputLen];
+	for(int j = 0; j<inputLen; j++) {
 		input[j] = userInput[j];
 	}
 
@@ -603,19 +603,19 @@ int main(void) {
 	View localViews[NUM_ROUNDS][3];
 	
 	//Generating keys
-	if(RAND_bytes(keys, NUM_ROUNDS*3*16) != 1) {
+	if(RAND_bytes((unsigned char *)keys, NUM_ROUNDS*3*16) != 1) {
 		printf("RAND_bytes failed crypto, aborting\n");
 		return 0;
 	}
-	if(RAND_bytes(rs, NUM_ROUNDS*3*4) != 1) {
+	if(RAND_bytes((unsigned char *)rs, NUM_ROUNDS*3*4) != 1) {
 		printf("RAND_bytes failed crypto, aborting\n");
 		return 0;
 	}
 
 
 	//Sharing secrets
-	unsigned char shares[NUM_ROUNDS][3][i]; //filled with random bits
-	if(RAND_bytes(shares, NUM_ROUNDS*3*i) != 1) {
+	unsigned char shares[NUM_ROUNDS][3][inputLen]; //filled with random bits
+	if(RAND_bytes((unsigned char *)shares, NUM_ROUNDS*3*inputLen) != 1) {
 		printf("RAND_bytes failed crypto, aborting\n");
 		return 0;
 	}
@@ -623,7 +623,7 @@ int main(void) {
 	//fill shares with random values ^ input
 	#pragma omp parallel for
 	for(int k=0; k<NUM_ROUNDS; k++) {
-		for (int j = 0; j < i; j++) { //iterate for the len of the input
+		for (int j = 0; j < inputLen; j++) { //iterate for the len of the input
 			shares[k][2][j] = input[j] ^ shares[k][0][j] ^ shares[k][1][j];
 		}
 	}
@@ -641,7 +641,7 @@ int main(void) {
 	//Running MPC-SHA2
 	#pragma omp parallel for
 	for(int k=0; k<NUM_ROUNDS; k++) {
-		as[k] = commit(i, shares[k], randomness[k], rs[k], localViews[k]);
+		as[k] = commit(inputLen, shares[k], randomness[k], rs[k], localViews[k]);
 		for(int j=0; j<3; j++) {
 			free(randomness[k][j]);
 		}
@@ -651,11 +651,11 @@ int main(void) {
 	#pragma omp parallel for
 	for(int k=0; k<NUM_ROUNDS; k++) {
 		unsigned char hash1[SHA256_DIGEST_LENGTH];
-		H(keys[k][0], localViews[k][0], rs[k][0], &hash1);
+		H(keys[k][0], localViews[k][0], rs[k][0], (unsigned char *) hash1);
 		memcpy(as[k].h[0], &hash1, 32);
-		H(keys[k][1], localViews[k][1], rs[k][1], &hash1);
+		H(keys[k][1], localViews[k][1], rs[k][1], (unsigned char *)hash1);
 		memcpy(as[k].h[1], &hash1, 32);
-		H(keys[k][2], localViews[k][2], rs[k][2], &hash1);
+		H(keys[k][2], localViews[k][2], rs[k][2], (unsigned char *)hash1);
 		memcpy(as[k].h[2], &hash1, 32);
 	}
 

@@ -114,7 +114,9 @@ uint32_t getRandom32(unsigned char randomness[2912], int randCount) {
 void init_EVP() {
 	ERR_load_crypto_strings();
 	OpenSSL_add_all_algorithms();
-	OPENSSL_config(NULL);
+	#if OPENSSL_VERSION_NUMBER < 0x10100000L
+		OPENSSL_config(NULL); // not needed anylonger with current openssl versions
+	#endif
 }
 
 void cleanup_EVP() {
@@ -122,7 +124,7 @@ void cleanup_EVP() {
 	ERR_free_strings();
 }
 
-void H(unsigned char k[16], View v, unsigned char r[4], unsigned char hash[SHA256_DIGEST_LENGTH]) { //calculates sha256 from whole k,v and r
+void H(unsigned char k[16], View v, unsigned char r[4], unsigned char * hash) { //calculates sha256 from whole k,v and r
 	SHA256_CTX ctx;
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, k, 16);
