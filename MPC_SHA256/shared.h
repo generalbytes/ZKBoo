@@ -41,14 +41,16 @@ static const uint32_t k[64] = { 0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
 
 #define ySize 736
 
+#define NUM_BRANCHES 3
+
 typedef struct {
 	unsigned char x[64];
 	uint32_t y[ySize];
 } View;
 
 typedef struct {
-	uint32_t yp[3][8];
-	unsigned char h[3][32]; //possible hashes to compare of z
+	uint32_t yp[NUM_BRANCHES][8];
+	unsigned char h[NUM_BRANCHES][32]; //possible hashes to compare of z
 } a;
 
 typedef struct {
@@ -304,9 +306,9 @@ void mpc_RIGHTSHIFT2(uint32_t x[2], int i, uint32_t z[2]) {
 }
 
 
-int mpc_MAJ_verify(uint32_t a[2], uint32_t b[2], uint32_t c[2], uint32_t z[3], View ve, View ve1, unsigned char randomness[2][2912], int* randCount, int* countY) {
-	uint32_t t0[3];
-	uint32_t t1[3];
+int mpc_MAJ_verify(uint32_t a[2], uint32_t b[2], uint32_t c[2], uint32_t z[NUM_BRANCHES], View ve, View ve1, unsigned char randomness[2][2912], int* randCount, int* countY) {
+	uint32_t t0[NUM_BRANCHES];
+	uint32_t t1[NUM_BRANCHES];
 
 	mpc_XOR2(a, b, t0);
 	mpc_XOR2(a, c, t1);
@@ -319,7 +321,7 @@ int mpc_MAJ_verify(uint32_t a[2], uint32_t b[2], uint32_t c[2], uint32_t z[3], V
 
 int mpc_CH_verify(uint32_t e[2], uint32_t f[2], uint32_t g[2], uint32_t z[2], View ve, View ve1, unsigned char randomness[2][2912], int* randCount, int* countY) {
 
-	uint32_t t0[3];
+	uint32_t t0[NUM_BRANCHES];
 	mpc_XOR2(f,g,t0);
 	if(mpc_AND_verify(e, t0, t0, ve, ve1, randomness, randCount, countY) == 1) {
 		return 1;
@@ -340,7 +342,7 @@ int verify(a a, int e, z z) {
 		return 1;
 	}
 	H(z.ke1, z.ve1, z.re1, hash); //calculate hash from z.ke1, z.ve1 a z.re1
-	if (memcmp(a.h[(e + 1) % 3], hash, 32) != 0) { //check if hash is a.h[(e+1) % 3]
+	if (memcmp(a.h[(e + 1) % NUM_BRANCHES], hash, 32) != 0) { //check if hash is a.h[(e+1) % 3]
 #if VERBOSE
 		printf("Failing at %d", __LINE__);
 #endif
@@ -358,7 +360,7 @@ int verify(a a, int e, z z) {
 	}
 
 	output(z.ve1, result); //a.yp[e+1] must contain same thing as z.ve.y[ySize - 8]
-	if (memcmp(a.yp[(e + 1) % 3], result, 32) != 0) {
+	if (memcmp(a.yp[(e + 1) % NUM_BRANCHES], result, 32) != 0) {
 #if VERBOSE
 		printf("Failing at %d", __LINE__);
 #endif
@@ -433,7 +435,7 @@ int verify(a a, int e, z z) {
 	uint32_t vf[2] = { hA[5],hA[5] };
 	uint32_t vg[2] = { hA[6],hA[6] };
 	uint32_t vh[2] = { hA[7],hA[7] };
-	uint32_t temp1[3], temp2[3], maj[3];
+	uint32_t temp1[NUM_BRANCHES], temp2[NUM_BRANCHES], maj[NUM_BRANCHES];
 	for (int i = 0; i < 64; i++) {
 		//s1 = RIGHTROTATE(e,6) ^ RIGHTROTATE(e,11) ^ RIGHTROTATE(e,25);
 		mpc_RIGHTROTATE2(ve, 6, t0);
@@ -545,8 +547,16 @@ int verify(a a, int e, z z) {
 		}
 	}
 
-	uint32_t hHa[8][3] = { { hA[0],hA[0],hA[0]  }, { hA[1],hA[1],hA[1] }, { hA[2],hA[2],hA[2] }, { hA[3],hA[3],hA[3] },
-			{ hA[4],hA[4],hA[4] }, { hA[5],hA[5],hA[5] }, { hA[6],hA[6],hA[6] }, { hA[7],hA[7],hA[7] } };
+	uint32_t hHa[8][NUM_BRANCHES] = {
+		 { hA[0],hA[0],hA[0] },
+		 { hA[1],hA[1],hA[1] },
+		 { hA[2],hA[2],hA[2] },
+		 { hA[3],hA[3],hA[3] },
+		 { hA[4],hA[4],hA[4] },
+		 { hA[5],hA[5],hA[5] },
+		 { hA[6],hA[6],hA[6] },
+		 { hA[7],hA[7],hA[7] }
+	};
 	if(mpc_ADD_verify(hHa[0], va, hHa[0], z.ve, z.ve1, randomness, randCount, countY) == 1) {
 #if VERBOSE
 		printf("Failing at %d", __LINE__);

@@ -38,7 +38,7 @@ int main(void) {
 
 	//Read all as and zs from file
 	FILE *file;
-	char outputFile[3*sizeof(int) + 8];
+	char outputFile[NUM_BRANCHES * sizeof(int) + 8];
 	sprintf(outputFile, "out%i.bin", NUM_ROUNDS);
 	file = fopen(outputFile, "rb");
 	if (!file) {

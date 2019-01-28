@@ -23,9 +23,6 @@
 
 int NUM_ROUNDS = 136;
 
-
-
-
 uint32_t rand32() { //returns 32bit random number.
 	uint32_t x;
 	x = rand() & 0xff;
@@ -45,7 +42,7 @@ void printbits(uint32_t n) {
 
 
 
-void mpc_XOR(uint32_t x[3], uint32_t y[3], uint32_t z[3]) { //xors z = x ^ y //all 3
+void mpc_XOR(uint32_t x[NUM_BRANCHES], uint32_t y[NUM_BRANCHES], uint32_t z[NUM_BRANCHES]) { //xors z = x ^ y //all 3
 	z[0] = x[0] ^ y[0];
 	z[1] = x[1] ^ y[1];
 	z[2] = x[2] ^ y[2];
@@ -53,14 +50,14 @@ void mpc_XOR(uint32_t x[3], uint32_t y[3], uint32_t z[3]) { //xors z = x ^ y //a
 
 
 
-void mpc_AND(uint32_t x[3], uint32_t y[3], uint32_t z[3], unsigned char *randomness[3], int* randCount, View views[3], int* countY) { //calling this function increases countY+1 and randCount+4 (countY is index to view's.y)
-	uint32_t r[3] = {
+void mpc_AND(uint32_t x[NUM_BRANCHES], uint32_t y[NUM_BRANCHES], uint32_t z[NUM_BRANCHES], unsigned char *randomness[NUM_BRANCHES], int* randCount, View views[NUM_BRANCHES], int* countY) { //calling this function increases countY+1 and randCount+4 (countY is index to view's.y)
+	uint32_t r[NUM_BRANCHES] = {
 		 getRandom32(randomness[0], *randCount),
 		 getRandom32(randomness[1], *randCount),
 		 getRandom32(randomness[2], *randCount)
 	};
 	*randCount += 4;
-	uint32_t t[3] = { 0 };
+	uint32_t t[NUM_BRANCHES] = { 0 };
 
 	t[0] = (x[0] & y[1]) ^ (x[1] & y[0]) ^ (x[0] & y[0]) ^ r[0] ^ r[1];
 	t[1] = (x[1] & y[2]) ^ (x[2] & y[1]) ^ (x[1] & y[1]) ^ r[1] ^ r[2];
@@ -76,7 +73,7 @@ void mpc_AND(uint32_t x[3], uint32_t y[3], uint32_t z[3], unsigned char *randomn
 
 
 
-void mpc_NEGATE(uint32_t x[3], uint32_t z[3]) {
+void mpc_NEGATE(uint32_t x[NUM_BRANCHES], uint32_t z[NUM_BRANCHES]) {
 	z[0] = ~x[0];
 	z[1] = ~x[1];
 	z[2] = ~x[2];
@@ -84,19 +81,19 @@ void mpc_NEGATE(uint32_t x[3], uint32_t z[3]) {
 
 
 
-void mpc_ADD(uint32_t x[3], uint32_t y[3], uint32_t z[3], unsigned char *randomness[3], int* randCount, View views[3], int* countY) {  //calling this function increases countY+1 and randCount+4 (countY is index to view's.y)
-	uint32_t c[3] = { 0 };
-	uint32_t r[3] = {
+void mpc_ADD(uint32_t x[NUM_BRANCHES], uint32_t y[NUM_BRANCHES], uint32_t z[NUM_BRANCHES], unsigned char *randomness[NUM_BRANCHES], int* randCount, View views[NUM_BRANCHES], int* countY) {  //calling this function increases countY+1 and randCount+4 (countY is index to view's.y)
+	uint32_t c[NUM_BRANCHES] = { 0 };
+	uint32_t r[NUM_BRANCHES] = {
 		getRandom32(randomness[0], *randCount),
 		getRandom32(randomness[1], *randCount),
 		getRandom32(randomness[2], *randCount)
 	};
 	*randCount += 4;
 
-	uint8_t a[3], b[3];
+	uint8_t a[NUM_BRANCHES], b[NUM_BRANCHES];
 	uint8_t t;
 
-	for(int i=0;i<31;i++)
+	for(int i=0;i<31;i++) //256bits
 	{
 		a[0]=GETBIT(x[0]^c[0],i);
 		a[1]=GETBIT(x[1]^c[1],i);
@@ -130,16 +127,16 @@ void mpc_ADD(uint32_t x[3], uint32_t y[3], uint32_t z[3], unsigned char *randomn
 }
 
 
-void mpc_ADDK(uint32_t x[3], uint32_t y, uint32_t z[3], unsigned char *randomness[3], int* randCount, View views[3], int* countY) {  //calling this function increases countY+1 and randCount+4 (countY is index to view's.y)
-	uint32_t c[3] = { 0 };
-	uint32_t r[3] = { 
+void mpc_ADDK(uint32_t x[NUM_BRANCHES], uint32_t y, uint32_t z[NUM_BRANCHES], unsigned char *randomness[NUM_BRANCHES], int* randCount, View views[NUM_BRANCHES], int* countY) {  //calling this function increases countY+1 and randCount+4 (countY is index to view's.y)
+	uint32_t c[NUM_BRANCHES] = { 0 };
+	uint32_t r[NUM_BRANCHES] = { 
 		getRandom32(randomness[0], *randCount), 
 		getRandom32(randomness[1], *randCount), 
 		getRandom32(randomness[2], *randCount)
 	};
 	*randCount += 4;
 
-	uint8_t a[3], b[3];
+	uint8_t a[NUM_BRANCHES], b[NUM_BRANCHES];
 
 	uint8_t t;
 
@@ -282,7 +279,7 @@ void mpc_RIGHTROTATE(uint32_t x[], int i, uint32_t z[]) {
 
 
 
-void mpc_RIGHTSHIFT(uint32_t x[3], int i, uint32_t z[3]) {
+void mpc_RIGHTSHIFT(uint32_t x[NUM_BRANCHES], int i, uint32_t z[NUM_BRANCHES]) {
 	z[0] = x[0] >> i;
 	z[1] = x[1] >> i;
 	z[2] = x[2] >> i;
@@ -292,9 +289,9 @@ void mpc_RIGHTSHIFT(uint32_t x[3], int i, uint32_t z[3]) {
 
 
 
-void mpc_MAJ(uint32_t a[], uint32_t b[3], uint32_t c[3], uint32_t z[3], unsigned char *randomness[3], int* randCount, View views[3], int* countY) {
-	uint32_t t0[3];
-	uint32_t t1[3];
+void mpc_MAJ(uint32_t a[], uint32_t b[NUM_BRANCHES], uint32_t c[NUM_BRANCHES], uint32_t z[NUM_BRANCHES], unsigned char *randomness[NUM_BRANCHES], int* randCount, View views[NUM_BRANCHES], int* countY) {
+	uint32_t t0[NUM_BRANCHES];
+	uint32_t t1[NUM_BRANCHES];
 
 	mpc_XOR(a, b, t0);
 	mpc_XOR(a, c, t1);
@@ -303,8 +300,8 @@ void mpc_MAJ(uint32_t a[], uint32_t b[3], uint32_t c[3], uint32_t z[3], unsigned
 }
 
 
-void mpc_CH(uint32_t e[], uint32_t f[3], uint32_t g[3], uint32_t z[3], unsigned char *randomness[3], int* randCount, View views[3], int* countY) {
-	uint32_t t0[3];
+void mpc_CH(uint32_t e[], uint32_t f[NUM_BRANCHES], uint32_t g[NUM_BRANCHES], uint32_t z[NUM_BRANCHES], unsigned char *randomness[NUM_BRANCHES], int* randCount, View views[NUM_BRANCHES], int* countY) {
+	uint32_t t0[NUM_BRANCHES];
 
 	//e & (f^g) ^ g
 	mpc_XOR(f,g,t0);
@@ -315,7 +312,7 @@ void mpc_CH(uint32_t e[], uint32_t f[3], uint32_t g[3], uint32_t z[3], unsigned 
 
 
 
-int mpc_sha256(unsigned char* results[3], unsigned char* inputs[3], int numBits, unsigned char *randomness[3], View views[3], int* countY) {
+int mpc_sha256(unsigned char* results[NUM_BRANCHES], unsigned char* inputs[NUM_BRANCHES], int numBits, unsigned char *randomness[NUM_BRANCHES], View views[NUM_BRANCHES], int* countY) {
 	if (numBits > 447) {
 		printf("Input too long, aborting!");
 		return -1;
@@ -324,10 +321,10 @@ int mpc_sha256(unsigned char* results[3], unsigned char* inputs[3], int numBits,
 	int* randCount = calloc(1, sizeof(int));
 
 	int chars = numBits >> 3;
-	unsigned char* chunks[3];
-	uint32_t w[64][3];
+	unsigned char* chunks[NUM_BRANCHES];
+	uint32_t w[64][NUM_BRANCHES];
 
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < NUM_BRANCHES; i++) {
 		chunks[i] = calloc(64, 1); //512 bits
 		memcpy(chunks[i], inputs[i], chars);
 		chunks[i][chars] = 0x80;
@@ -347,8 +344,8 @@ int mpc_sha256(unsigned char* results[3], unsigned char* inputs[3], int numBits,
 		free(chunks[i]);
 	}
 
-	uint32_t s0[3], s1[3];
-	uint32_t t0[3], t1[3];
+	uint32_t s0[NUM_BRANCHES], s1[NUM_BRANCHES];
+	uint32_t t0[NUM_BRANCHES], t1[NUM_BRANCHES];
 	for (int j = 16; j < 64; j++) {
 		//s0[i] = RIGHTROTATE(w[i][j-15],7) ^ RIGHTROTATE(w[i][j-15],18) ^ (w[i][j-15] >> 3);
 		mpc_RIGHTROTATE(w[j-15], 7, t0);
@@ -374,15 +371,15 @@ int mpc_sha256(unsigned char* results[3], unsigned char* inputs[3], int numBits,
 
 	}
 
-	uint32_t a[3] = { hA[0],hA[0],hA[0] };
-	uint32_t b[3] = { hA[1],hA[1],hA[1] };
-	uint32_t c[3] = { hA[2],hA[2],hA[2] };
-	uint32_t d[3] = { hA[3],hA[3],hA[3] };
-	uint32_t e[3] = { hA[4],hA[4],hA[4] };
-	uint32_t f[3] = { hA[5],hA[5],hA[5] };
-	uint32_t g[3] = { hA[6],hA[6],hA[6] };
-	uint32_t h[3] = { hA[7],hA[7],hA[7] };
-	uint32_t temp1[3], temp2[3], maj[3];
+	uint32_t a[NUM_BRANCHES] = { hA[0], hA[0], hA[0] };
+	uint32_t b[NUM_BRANCHES] = { hA[1], hA[1], hA[1] };
+	uint32_t c[NUM_BRANCHES] = { hA[2], hA[2], hA[2] };
+	uint32_t d[NUM_BRANCHES] = { hA[3], hA[3], hA[3] };
+	uint32_t e[NUM_BRANCHES] = { hA[4], hA[4], hA[4] };
+	uint32_t f[NUM_BRANCHES] = { hA[5], hA[5], hA[5] };
+	uint32_t g[NUM_BRANCHES] = { hA[6], hA[6], hA[6] };
+	uint32_t h[NUM_BRANCHES] = { hA[7], hA[7], hA[7] };
+	uint32_t temp1[NUM_BRANCHES], temp2[NUM_BRANCHES], maj[NUM_BRANCHES];
 
 	for (int i = 0; i < 64; i++) {
 		//s1 = RIGHTROTATE(e,6) ^ RIGHTROTATE(e,11) ^ RIGHTROTATE(e,25);
@@ -424,27 +421,27 @@ int mpc_sha256(unsigned char* results[3], unsigned char* inputs[3], int numBits,
 		//temp2 = s0+maj;
 		mpc_ADD(s0, maj, temp2, randomness, randCount, views, countY);
 
-		memcpy(h, g, sizeof(uint32_t) * 3);
-		memcpy(g, f, sizeof(uint32_t) * 3);
-		memcpy(f, e, sizeof(uint32_t) * 3);
+		memcpy(h, g, sizeof(uint32_t) * NUM_BRANCHES);
+		memcpy(g, f, sizeof(uint32_t) * NUM_BRANCHES);
+		memcpy(f, e, sizeof(uint32_t) * NUM_BRANCHES);
 		//e = d+temp1;
 		mpc_ADD(d, temp1, e, randomness, randCount, views, countY);
-		memcpy(d, c, sizeof(uint32_t) * 3);
-		memcpy(c, b, sizeof(uint32_t) * 3);
-		memcpy(b, a, sizeof(uint32_t) * 3);
+		memcpy(d, c, sizeof(uint32_t) * NUM_BRANCHES);
+		memcpy(c, b, sizeof(uint32_t) * NUM_BRANCHES);
+		memcpy(b, a, sizeof(uint32_t) * NUM_BRANCHES);
 		//a = temp1+temp2;
 		mpc_ADD(temp1, temp2, a, randomness, randCount, views, countY);
 	}
 
-	uint32_t hHa[8][3] = { 
-		{ hA[0],hA[0],hA[0] },
-		{ hA[1],hA[1],hA[1] }, 
-		{ hA[2],hA[2],hA[2] }, 
-		{ hA[3],hA[3],hA[3] },
-		{ hA[4],hA[4],hA[4] },
-		{ hA[5],hA[5],hA[5] }, 
-		{ hA[6],hA[6],hA[6] }, 
-		{ hA[7],hA[7],hA[7] } 
+	uint32_t hHa[8][NUM_BRANCHES] = { 
+		{ hA[0], hA[0], hA[0] },
+		{ hA[1], hA[1], hA[1] }, 
+		{ hA[2], hA[2], hA[2] }, 
+		{ hA[3], hA[3], hA[3] },
+		{ hA[4], hA[4], hA[4] },
+		{ hA[5], hA[5], hA[5] }, 
+		{ hA[6], hA[6], hA[6] }, 
+		{ hA[7], hA[7], hA[7] } 
 	};
 
 	mpc_ADD(hHa[0], a, hHa[0], randomness, randCount, views, countY);
@@ -479,7 +476,7 @@ int mpc_sha256(unsigned char* results[3], unsigned char* inputs[3], int numBits,
 }
 
 
-int writeToFile(char filename[], void* data, int size, int numItems) {
+int writeToFile(char filename[], void* data, int size, int numItems) { //writes proof into the file
 	FILE *file;
 	file = fopen(filename, "wb");
 	if (!file) {
@@ -494,7 +491,7 @@ int writeToFile(char filename[], void* data, int size, int numItems) {
 
 
 
-int secretShare(unsigned char* input, int numBytes, unsigned char output[3][numBytes]) {
+int secretShare(unsigned char* input, int numBytes, unsigned char output[NUM_BRANCHES][numBytes]) {
 	if(RAND_bytes(output[0], numBytes) != 1) {
 		printf("RAND_bytes failed crypto, aborting\n");
 	}
@@ -509,12 +506,12 @@ int secretShare(unsigned char* input, int numBytes, unsigned char output[3][numB
 
 
 
-a commit(int numBytes,unsigned char shares[3][numBytes], unsigned char *randomness[3], unsigned char rs[3][4], View views[3]) {
-	unsigned char* inputs[3];
+a commit(int numBytes,unsigned char shares[NUM_BRANCHES][numBytes], unsigned char *randomness[NUM_BRANCHES], unsigned char rs[NUM_BRANCHES][4], View views[NUM_BRANCHES]) {
+	unsigned char* inputs[NUM_BRANCHES];
 	inputs[0] = shares[0];
 	inputs[1] = shares[1];
 	inputs[2] = shares[2];
-	unsigned char* hashes[3];
+	unsigned char* hashes[NUM_BRANCHES];
 	hashes[0] = malloc(32);
 	hashes[1] = malloc(32);
 	hashes[2] = malloc(32);
@@ -558,14 +555,14 @@ a commit(int numBytes,unsigned char shares[3][numBytes], unsigned char *randomne
 	return a;
 }
 
-z prove(int e, unsigned char keys[3][16], unsigned char rs[3][4], View views[3]) {
+z prove(int e, unsigned char keys[NUM_BRANCHES][16], unsigned char rs[NUM_BRANCHES][4], View views[NUM_BRANCHES]) {
 	z z;
 	memcpy(z.ke, keys[e], 16);
-	memcpy(z.ke1, keys[(e + 1) % 3], 16);
+	memcpy(z.ke1, keys[(e + 1) % NUM_BRANCHES], 16);
 	z.ve = views[e];
-	z.ve1 = views[(e + 1) % 3];
-	memcpy(z.re, rs[e],4);
-	memcpy(z.re1, rs[(e + 1) % 3],4);
+	z.ve1 = views[(e + 1) % NUM_BRANCHES];
+	memcpy(z.re, rs[e], 4);
+	memcpy(z.re1, rs[(e + 1) % NUM_BRANCHES], 4);
 	return z;
 }
 
@@ -597,25 +594,24 @@ int main(void) {
 		input[j] = userInput[j];
 	}
 
-	unsigned char rs[NUM_ROUNDS][3][4]; //filled with random bits
-	unsigned char keys[NUM_ROUNDS][3][16]; //filled with random bits
+	unsigned char rs[NUM_ROUNDS][NUM_BRANCHES][4]; //filled with random bits
+	unsigned char keys[NUM_ROUNDS][NUM_BRANCHES][16]; //filled with random bits
 	a as[NUM_ROUNDS];
-	View localViews[NUM_ROUNDS][3];
+	View localViews[NUM_ROUNDS][NUM_BRANCHES];
 	
-	//Generating keys
-	if(RAND_bytes((unsigned char *)keys, NUM_ROUNDS*3*16) != 1) {
+	//Generating keysrs
+	if(RAND_bytes((unsigned char *)keys, NUM_ROUNDS * NUM_BRANCHES * 16) != 1) {
 		printf("RAND_bytes failed crypto, aborting\n");
 		return 0;
 	}
-	if(RAND_bytes((unsigned char *)rs, NUM_ROUNDS*3*4) != 1) {
+	if(RAND_bytes((unsigned char *)rs, NUM_ROUNDS * NUM_BRANCHES * 4) != 1) {
 		printf("RAND_bytes failed crypto, aborting\n");
 		return 0;
 	}
-
 
 	//Sharing secrets
-	unsigned char shares[NUM_ROUNDS][3][inputLen]; //filled with random bits
-	if(RAND_bytes((unsigned char *)shares, NUM_ROUNDS*3*inputLen) != 1) {
+	unsigned char shares[NUM_ROUNDS][NUM_BRANCHES][inputLen]; //filled with random bits
+	if(RAND_bytes((unsigned char *)shares, NUM_ROUNDS * NUM_BRANCHES * inputLen) != 1) {
 		printf("RAND_bytes failed crypto, aborting\n");
 		return 0;
 	}
@@ -629,11 +625,11 @@ int main(void) {
 	}
 
 	//Generating randomness
-	unsigned char *randomness[NUM_ROUNDS][3];
+	unsigned char *randomness[NUM_ROUNDS][NUM_BRANCHES];
 	#pragma omp parallel for
 	for(int k=0; k<NUM_ROUNDS; k++) {
-		for(int j = 0; j<3; j++) {
-			randomness[k][j] = malloc(2912*sizeof(unsigned char));
+		for(int j = 0; j< NUM_BRANCHES; j++) {
+			randomness[k][j] = malloc(2912*sizeof(unsigned char)); //why 2912? Answer = ? 
 			getAllRandomness(keys[k][j], randomness[k][j]);
 		}
 	}
@@ -642,7 +638,7 @@ int main(void) {
 	#pragma omp parallel for
 	for(int k=0; k<NUM_ROUNDS; k++) {
 		as[k] = commit(inputLen, shares[k], randomness[k], rs[k], localViews[k]);
-		for(int j=0; j<3; j++) {
+		for(int j=0; j < NUM_BRANCHES; j++) {
 			free(randomness[k][j]);
 		}
 	}
@@ -653,9 +649,9 @@ int main(void) {
 		unsigned char hash1[SHA256_DIGEST_LENGTH];
 		H(keys[k][0], localViews[k][0], rs[k][0], (unsigned char *) hash1);
 		memcpy(as[k].h[0], &hash1, 32);
-		H(keys[k][1], localViews[k][1], rs[k][1], (unsigned char *)hash1);
+		H(keys[k][1], localViews[k][1], rs[k][1], (unsigned char *) hash1);
 		memcpy(as[k].h[1], &hash1, 32);
-		H(keys[k][2], localViews[k][2], rs[k][2], (unsigned char *)hash1);
+		H(keys[k][2], localViews[k][2], rs[k][2], (unsigned char *) hash1);
 		memcpy(as[k].h[2], &hash1, 32);
 	}
 
@@ -671,7 +667,7 @@ int main(void) {
 	//Packing Z
 	z* zs = malloc(sizeof(z)*NUM_ROUNDS);
 	#pragma omp parallel for
-	for(int i = 0; i<NUM_ROUNDS; i++) {
+	for(int i = 0; i < NUM_ROUNDS; i++) {
 		zs[i] = prove(es[i],keys[i],rs[i], localViews[i]);
 	}
 	
