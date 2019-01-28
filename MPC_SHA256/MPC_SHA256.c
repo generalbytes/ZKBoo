@@ -158,7 +158,7 @@ void mpc_RIGHTROTATE(uint32_t x[], int bits, uint32_t z[]) { //rotates with all 
 	z[2] = RIGHTROTATE(x[2], bits);
 }
 
-void mpc_RIGHTSHIFT(uint32_t x[NUM_BRANCHES], int bits, uint32_t z[NUM_BRANCHES]) {
+void mpc_RIGHTSHIFT(uint32_t x[NUM_BRANCHES], int bits, uint32_t z[NUM_BRANCHES]) { //shifts with all 3 Xs by number of bits and result is written into z
 	z[0] = x[0] >> bits;
 	z[1] = x[1] >> bits;
 	z[2] = x[2] >> bits;
@@ -294,7 +294,9 @@ int mpc_sha256(unsigned char* results[NUM_BRANCHES], unsigned char* inputs[NUM_B
 	int chars = numBits >> 3;
 	unsigned char* chunks[NUM_BRANCHES];
 	uint32_t w[64][NUM_BRANCHES];
+	memset(w,0,sizeof w); //for debugging purposes i prefer to clean w before we start to play with it
 
+	//initialize w by inputs
 	for (int branch = 0; branch < NUM_BRANCHES; branch++) {
 		chunks[branch] = calloc(64, 1); //512 bits
 		memcpy(chunks[branch], inputs[branch], chars);
@@ -306,7 +308,7 @@ int mpc_sha256(unsigned char* results[NUM_BRANCHES], unsigned char* inputs[NUM_B
 		//chunk[61] = numBits >> 16;
 		chunks[branch][62] = numBits >> 8;
 		chunks[branch][63] = numBits;
-		memcpy(views[branch].x, chunks[branch], 64);
+		memcpy(views[branch].x, chunks[branch], 64); //copy input (share) into x
 
 		for (int j = 0; j < 16; j++) {
 			w[j][branch] = (chunks[branch][j * 4] << 24) | (chunks[branch][j * 4 + 1] << 16) | (chunks[branch][j * 4 + 2] << 8) | chunks[branch][j * 4 + 3];
@@ -314,8 +316,11 @@ int mpc_sha256(unsigned char* results[NUM_BRANCHES], unsigned char* inputs[NUM_B
 		free(chunks[branch]);
 	}
 
-	uint32_t s0[NUM_BRANCHES], s1[NUM_BRANCHES];
-	uint32_t t0[NUM_BRANCHES], t1[NUM_BRANCHES];
+	uint32_t s0[NUM_BRANCHES];
+	uint32_t s1[NUM_BRANCHES];
+	uint32_t t0[NUM_BRANCHES];
+	uint32_t t1[NUM_BRANCHES];
+
 	for (int j = 16; j < 64; j++) {
 		//s0[i] = RIGHTROTATE(w[i][j-15],7) ^ RIGHTROTATE(w[i][j-15],18) ^ (w[i][j-15] >> 3);
 		mpc_RIGHTROTATE(w[j-15], 7, t0);
