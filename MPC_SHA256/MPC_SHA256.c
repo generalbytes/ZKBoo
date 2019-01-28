@@ -448,23 +448,24 @@ int mpc_sha256(unsigned char* results[NUM_BRANCHES], unsigned char* inputs[NUM_B
 
 
 a commit(int numBytes,unsigned char shares[NUM_BRANCHES][numBytes], unsigned char *randomness[NUM_BRANCHES], unsigned char rs[NUM_BRANCHES][4], View views[NUM_BRANCHES]) {
-	unsigned char* inputs[NUM_BRANCHES];
-	inputs[0] = shares[0];
-	inputs[1] = shares[1];
-	inputs[2] = shares[2];
 	unsigned char* hashes[NUM_BRANCHES];
 	hashes[0] = malloc(32);
 	hashes[1] = malloc(32);
 	hashes[2] = malloc(32);
 
+	unsigned char* inputs[NUM_BRANCHES];
+	inputs[0] = shares[0];
+	inputs[1] = shares[1];
+	inputs[2] = shares[2];
+
 	int* countY = calloc(1, sizeof(int));
 	mpc_sha256(hashes, inputs, numBytes * 8, randomness, views, countY);
 
 	//Explicitly add y to view
-	for(int i = 0; i<8; i++) {
-		views[0].y[*countY] = (hashes[0][i * 4] << 24) | (hashes[0][i * 4 + 1] << 16) | (hashes[0][i * 4 + 2] << 8) | hashes[0][i * 4 + 3];
-		views[1].y[*countY] = (hashes[1][i * 4] << 24) | (hashes[1][i * 4 + 1] << 16) | (hashes[1][i * 4 + 2] << 8) | hashes[1][i * 4 + 3];
-		views[2].y[*countY] = (hashes[2][i * 4] << 24) | (hashes[2][i * 4 + 1] << 16) | (hashes[2][i * 4 + 2] << 8) | hashes[2][i * 4 + 3];
+	for(int i = 0; i < 8; i++) { //8x32bit = 256bit
+		views[0].y[*countY] = (hashes[0][i * 4] << 24) | (hashes[0][i * 4 + 1] << 16) | (hashes[0][i * 4 + 2] << 8) | hashes[0][i * 4 + 3]; //32bit number
+		views[1].y[*countY] = (hashes[1][i * 4] << 24) | (hashes[1][i * 4 + 1] << 16) | (hashes[1][i * 4 + 2] << 8) | hashes[1][i * 4 + 3]; //32bit number
+		views[2].y[*countY] = (hashes[2][i * 4] << 24) | (hashes[2][i * 4 + 1] << 16) | (hashes[2][i * 4 + 2] << 8) | hashes[2][i * 4 + 3]; //32bit number
 		*countY += 1;
 	}
 	free(countY);
@@ -476,9 +477,9 @@ a commit(int numBytes,unsigned char shares[NUM_BRANCHES][numBytes], unsigned cha
 	uint32_t* result2 = malloc(32);
 	uint32_t* result3 = malloc(32);
 
-	output(views[0], result1);
-	output(views[1], result2);
-	output(views[2], result3);
+	memcpy(result1, &views[0].y[ySize - 8], 32);
+	memcpy(result2, &views[1].y[ySize - 8], 32);
+	memcpy(result3, &views[2].y[ySize - 8], 32);
 
 	a a;
 	memcpy(a.yp[0], result1, 32);
@@ -565,15 +566,15 @@ int main(void) {
 	unsigned char *randomness[NUM_ROUNDS][NUM_BRANCHES];
 	#pragma omp parallel for
 	for(int round=0; round < NUM_ROUNDS; round++) {
-		for(int j = 0; j < NUM_BRANCHES; j++) {
-			randomness[round][j] = malloc(2912*sizeof(unsigned char)); //why 2912? Answer = ? 
-			getAllRandomness(keys[round][j], randomness[round][j]); //randomness is generated via AES with random keys
+		for(int branch = 0; branch < NUM_BRANCHES; branch++) {
+			randomness[round][branch] = malloc(2912*sizeof(unsigned char)); //why 2912? Answer = ? 
+			getAllRandomness(keys[round][branch], randomness[round][branch]); //randomness is generated via AES with random keys
 		}
 	}
 
 	//Running MPC-SHA2
 	#pragma omp parallel for
-	for(int round=0; round<NUM_ROUNDS; round++) {
+	for(int round=0; round < NUM_ROUNDS; round++) {
 		//calculate COMMITMENTS for each round and branch
 		as[round] = commit(inputLen, shares[round], randomness[round], rs[round], localViews[round]);
 		for(int branch=0; branch < NUM_BRANCHES; branch++) {

@@ -179,9 +179,7 @@ void H3(uint32_t y[8], a* as, int s, int* es) { //caluclate sha256 of y and all 
 
 }
 
-void output(View v, uint32_t* result) {
-	memcpy(result, &v.y[ySize - 8], 32);
-}
+
 
 void reconstruct(uint32_t* y0, uint32_t* y1, uint32_t* y2, uint32_t* result) {
 	for (int i = 0; i < 8; i++) {
@@ -346,7 +344,7 @@ int verify(a a, int e, z z) {
 	free(hash);
 
 	uint32_t* result = malloc(32);
-	output(z.ve, result);
+	memcpy(result, &(z.ve).y[ySize - 8], 32);
 	if (memcmp(a.yp[e], result, 32) != 0) { //a.yp[e] must contain same thing as z.ve.y[ySize - 8]
 #if VERBOSE
 		printf("Failing at %d", __LINE__);
@@ -354,7 +352,8 @@ int verify(a a, int e, z z) {
 		return 1;
 	}
 
-	output(z.ve1, result); //a.yp[e+1] must contain same thing as z.ve.y[ySize - 8]
+	 //a.yp[e+1] must contain same thing as z.ve.y[ySize - 8]
+	memcpy(result, &z.ve1.y[ySize - 8], 32);
 	if (memcmp(a.yp[(e + 1) % NUM_BRANCHES], result, 32) != 0) {
 #if VERBOSE
 		printf("Failing at %d", __LINE__);
