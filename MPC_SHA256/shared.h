@@ -49,7 +49,7 @@ static const uint32_t k[64] = { 0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
 #define TWO_BRANCHES 2
 
 typedef struct { // step in computation - internal state of each step
-	unsigned char x[64];
+	unsigned char x[64]; //input share
 	uint32_t y[ySize]; //736 32bit values
 } View;
 
@@ -325,18 +325,20 @@ int mpc_CH_verify(uint32_t e[TWO_BRANCHES], uint32_t f[TWO_BRANCHES], uint32_t g
 }
 
 
-int verify(a a, int e, z z) {
-	unsigned char* hash = malloc(SHA256_DIGEST_LENGTH);
-	calculateHashForBranch(z.ke0, z.ve0, z.re0, hash); //calculate hash from z.ke, z.ve a z.re
+int verifyRound(a a, int e, z z) {
 
-	if (memcmp(a.h[e], hash, 32) != 0) { //check if hash is a.h[e]
+	//1. First check if hashes of branches are ok.
+	unsigned char* hash = malloc(SHA256_DIGEST_LENGTH);
+	calculateHashForBranch(z.ke0, z.ve0, z.re0, hash); //calculate hash from z.ke0, z.ve0 a z.re0
+
+	if (memcmp(a.h[(e + 0) % NUM_BRANCHES], hash, 32) != 0) {
 #if VERBOSE
 		printf("Failing at %d", __LINE__);
 #endif
 		return 1;
 	}
 	calculateHashForBranch(z.ke1, z.ve1, z.re1, hash); //calculate hash from z.ke1, z.ve1 a z.re1
-	if (memcmp(a.h[(e + 1) % NUM_BRANCHES], hash, 32) != 0) { //check if hash is a.h[(e+1) % 3]
+	if (memcmp(a.h[(e + 1) % NUM_BRANCHES], hash, 32) != 0) { 
 #if VERBOSE
 		printf("Failing at %d", __LINE__);
 #endif
@@ -344,16 +346,16 @@ int verify(a a, int e, z z) {
 	}
 	free(hash);
 
+	//2. Check if last step in view is equal to yp for both branches
 	uint32_t* result = malloc(32);
 	memcpy(result, &(z.ve0).y[ySize - 8], 32);
-	if (memcmp(a.yp[e], result, 32) != 0) { //a.yp[e] must contain same thing as z.ve.y[ySize - 8]
+	if (memcmp(a.yp[(e + 0) % NUM_BRANCHES], result, 32) != 0) { //a.yp[e] must contain same thing as z.ve.y[ySize - 8]
 #if VERBOSE
 		printf("Failing at %d", __LINE__);
 #endif
 		return 1;
 	}
 
-	 //a.yp[e+1] must contain same thing as z.ve.y[ySize - 8]
 	memcpy(result, &z.ve1.y[ySize - 8], 32);
 	if (memcmp(a.yp[(e + 1) % NUM_BRANCHES], result, 32) != 0) {
 #if VERBOSE
@@ -364,16 +366,19 @@ int verify(a a, int e, z z) {
 
 	free(result);
 
+	//3. Generate deterministicaly randomness for both branches based on the supplied AES keys
 	unsigned char randomness[TWO_BRANCHES][2912];
-	getAllRandomness(z.ke0,  randomness[0]);
+	getAllRandomness(z.ke0, randomness[0]);
 	getAllRandomness(z.ke1, randomness[1]);
 
 	int* randCount = calloc(1, sizeof(int));
 	int* countY    = calloc(1, sizeof(int));
 
+
+	//4. calculate initial state for SHA256 based on shares.
 	uint32_t w[64][TWO_BRANCHES];
 	for (int j = 0; j < 16; j++) {
-		w[j][0] = ( z.ve0.x[j * 4] << 24) | ( z.ve0.x[j * 4 + 1] << 16) | ( z.ve0.x[j * 4 + 2] << 8) |  z.ve0.x[j * 4 + 3];
+		w[j][0] = (z.ve0.x[j * 4] << 24) | (z.ve0.x[j * 4 + 1] << 16) | (z.ve0.x[j * 4 + 2] << 8) | z.ve0.x[j * 4 + 3];
 		w[j][1] = (z.ve1.x[j * 4] << 24) | (z.ve1.x[j * 4 + 1] << 16) | (z.ve1.x[j * 4 + 2] << 8) | z.ve1.x[j * 4 + 3];
 	}
 
