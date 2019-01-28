@@ -604,7 +604,7 @@ int main(void) {
 
 	//Packing Z
 	z* zs = malloc(sizeof(z)*NUM_ROUNDS);
-	#pragma omp parallel for
+//	#pragma omp parallel for
 	for(int round = 0; round < NUM_ROUNDS; round++) {
 		zs[round] = prove(es[round], keys[round], rs[round], localViews[round]);
 	}
