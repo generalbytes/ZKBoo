@@ -509,7 +509,7 @@ a commit(int inputLen,unsigned char shares[NUM_BRANCHES][inputLen], unsigned cha
 	return a;
 }
 
-z prove(int e, unsigned char keys[NUM_BRANCHES][16], unsigned char rs[NUM_BRANCHES][4], View views[NUM_BRANCHES]) {
+z getProveOfTwoBranchesByE(int e, unsigned char keys[NUM_BRANCHES][16], unsigned char rs[NUM_BRANCHES][4], View views[NUM_BRANCHES]) {
 	z z;
 	memcpy(z.ke0, keys[(e + 0) % NUM_BRANCHES], 16);
 	memcpy(z.ke1, keys[(e + 1) % NUM_BRANCHES], 16);
@@ -617,15 +617,14 @@ int main(void) {
 	for (int j = 0; j < 8; j++) { //yes this is how the final hash is calculated
 		finalHash[j] = as[0].yp[0][j] ^ as[0].yp[1][j] ^ as[0].yp[2][j];
 	}
-	calculateEs(finalHash, as, NUM_ROUNDS, es); //Es is calculated by hashing final hash and contains of as (e is id of a branch to be picked)
+	calculateEs(finalHash, as, NUM_ROUNDS, es); //Es are picked by bit positions of final hash and contains of as (e is id of a branch to be picked)
 
-	//Packing Z
+	//Get prove (Zs chosen by Es)
 	z* zs = malloc(sizeof(z) * NUM_ROUNDS);
 //	#pragma omp parallel for
 	for(int round = 0; round < NUM_ROUNDS; round++) {
-		zs[round] = prove(es[round], keys[round], rs[round], localViews[round]);
+		zs[round] = getProveOfTwoBranchesByE(es[round], keys[round], rs[round], localViews[round]);
 	}
-	
 	
 	//Writing to file
 	FILE *file;
@@ -636,8 +635,8 @@ int main(void) {
 		printf("Unable to open file!");
 		return 1;
 	}
-	fwrite(as, sizeof(a), NUM_ROUNDS, file);
-	fwrite(zs, sizeof(z), NUM_ROUNDS, file);
+	fwrite(as, sizeof(a), NUM_ROUNDS, file); //writes yp and hashes of all branches for each round
+	fwrite(zs, sizeof(z), NUM_ROUNDS, file); //contains inputes to calculate 2 branches out of 3 for each round
 	fclose(file);
 	free(zs);
 
