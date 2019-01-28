@@ -48,7 +48,7 @@ static const uint32_t k[64] = { 0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
 #define NUM_BRANCHES 3
 #define TWO_BRANCHES 2
 
-typedef struct { // step in computation
+typedef struct { // step in computation - internal state of each step
 	unsigned char x[64];
 	uint32_t y[ySize]; //736 32bit values
 } View;
@@ -86,9 +86,9 @@ EVP_CIPHER_CTX* setupAES(unsigned char key[16]) {
 	/* A 128 bit IV */
 	unsigned char *iv = (unsigned char *)"01234567890123456";
 
-	if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_ctr(), NULL, key, iv))
+	if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_ctr(), NULL, key, iv)){
 		handleErrors();
-
+	}
 	return ctx;
 }
 

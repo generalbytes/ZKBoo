@@ -458,7 +458,7 @@ int mpc_sha256(unsigned char* results[NUM_BRANCHES], unsigned char* inputs[NUM_B
 
 
 
-a commit(int inputLen,unsigned char shares[NUM_BRANCHES][inputLen], unsigned char *randomness[NUM_BRANCHES], unsigned char rs[NUM_BRANCHES][4], View views[NUM_BRANCHES]) {
+a commit(int inputLen,unsigned char shares[NUM_BRANCHES][inputLen], unsigned char *randomness[NUM_BRANCHES], View views[NUM_BRANCHES]) {
 	unsigned char* hashes[NUM_BRANCHES];
 	hashes[0] = malloc(32);
 	hashes[1] = malloc(32);
@@ -592,9 +592,9 @@ int main(void) {
 //	#pragma omp parallel for
 	for(int round=0; round < NUM_ROUNDS; round++) {
 		//calculate COMMITMENTS for each round and branch
-		as[round] = commit(inputLen, shares[round], randomness[round], rs[round], localViews[round]);
+		as[round] = commit(inputLen, shares[round], randomness[round], localViews[round]);
 		for(int branch=0; branch < NUM_BRANCHES; branch++) {
-			free(randomness[round][branch]);
+			free(randomness[round][branch]); //free randomness it will no longer be neeed 
 		}
 	}
 
