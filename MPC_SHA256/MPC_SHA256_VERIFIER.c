@@ -17,12 +17,12 @@
 
 int NUM_ROUNDS = 136;
 
-void printbits(uint32_t n) {
-	if (n) {
-		printbits(n >> 1);
-		printf("%d", n & 1);
-	}
-}
+// void printbits(uint32_t n) {
+// 	if (n) {
+// 		printbits(n >> 1);
+// 		printf("%d", n & 1);
+// 	}
+// }
 
 
 

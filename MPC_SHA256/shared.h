@@ -20,7 +20,7 @@
 #include <openssl/rand.h>
 #include "omp.h"
 
-#define VERBOSE TRUE
+#define VERBOSE 1
 
 static const uint32_t hA[8] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
 		0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 };
@@ -206,12 +206,9 @@ omp_lock_t *locks;
 
 void openmp_locking_callback(int mode, int type, char *file, int line)
 {
-  if (mode & CRYPTO_LOCK)
-  {
+  if (mode & CRYPTO_LOCK) {
     omp_set_lock(&locks[type]);
-  }
-  else
-  {
+  } else {
     omp_unset_lock(&locks[type]);
   }
 }
@@ -225,13 +222,11 @@ unsigned long openmp_thread_id(void)
 void openmp_thread_setup(void)
 {
   int i;
-
   locks = OPENSSL_malloc(CRYPTO_num_locks() * sizeof(omp_lock_t));
   for (i=0; i<CRYPTO_num_locks(); i++)
   {
     omp_init_lock(&locks[i]);
   }
-
   CRYPTO_set_id_callback((unsigned long (*)())openmp_thread_id);
   CRYPTO_set_locking_callback((void (*)())openmp_locking_callback);
 }
@@ -239,11 +234,11 @@ void openmp_thread_setup(void)
 void openmp_thread_cleanup(void)
 {
   int i;
-
   CRYPTO_set_id_callback(NULL);
   CRYPTO_set_locking_callback(NULL);
-  for (i=0; i<CRYPTO_num_locks(); i++)
+  for (i=0; i<CRYPTO_num_locks(); i++){
     omp_destroy_lock(&locks[i]);
+  }
   OPENSSL_free(locks);
 }
 
@@ -276,7 +271,8 @@ int mpc_ADD_verify(uint32_t x[TWO_BRANCHES], uint32_t y[TWO_BRANCHES], uint32_t 
 	};
 	*randCount += 4;
 
-	uint8_t a[TWO_BRANCHES], b[TWO_BRANCHES];
+	uint8_t a[TWO_BRANCHES];
+	uint8_t b[TWO_BRANCHES];
 	uint8_t t;
 
 	for(int i=0;i<31;i++)
@@ -309,7 +305,6 @@ void mpc_RIGHTSHIFT2(uint32_t x[TWO_BRANCHES], int bits, uint32_t z[TWO_BRANCHES
 	z[1] = x[1] >> bits;
 }
 
-
 int mpc_MAJ_verify(uint32_t a[TWO_BRANCHES], uint32_t b[TWO_BRANCHES], uint32_t c[TWO_BRANCHES], uint32_t z[NUM_BRANCHES], View ve, View ve1, unsigned char randomness[TWO_BRANCHES][2912], int* randCount, int* countY) {
 	uint32_t t0[NUM_BRANCHES];
 	uint32_t t1[NUM_BRANCHES];
@@ -324,7 +319,6 @@ int mpc_MAJ_verify(uint32_t a[TWO_BRANCHES], uint32_t b[TWO_BRANCHES], uint32_t 
 }
 
 int mpc_CH_verify(uint32_t e[TWO_BRANCHES], uint32_t f[TWO_BRANCHES], uint32_t g[TWO_BRANCHES], uint32_t z[TWO_BRANCHES], View ve, View ve1, unsigned char randomness[TWO_BRANCHES][2912], int* randCount, int* countY) {
-
 	uint32_t t0[NUM_BRANCHES];
 	mpc_XOR2(f,g,t0);
 	if(mpc_AND_verify(e, t0, t0, ve, ve1, randomness, randCount, countY) == 1) {
@@ -382,17 +376,15 @@ int verify(a a, int e, z z) {
 
 	uint32_t w[64][TWO_BRANCHES];
 	for (int j = 0; j < 16; j++) {
-		w[j][0] = (z.ve.x[j * 4] << 24) | (z.ve.x[j * 4 + 1] << 16)
-								| (z.ve.x[j * 4 + 2] << 8) | z.ve.x[j * 4 + 3];
-		w[j][1] = (z.ve1.x[j * 4] << 24) | (z.ve1.x[j * 4 + 1] << 16)
-								| (z.ve1.x[j * 4 + 2] << 8) | z.ve1.x[j * 4 + 3];
+		w[j][0] = ( z.ve.x[j * 4] << 24) | ( z.ve.x[j * 4 + 1] << 16) | ( z.ve.x[j * 4 + 2] << 8) |  z.ve.x[j * 4 + 3];
+		w[j][1] = (z.ve1.x[j * 4] << 24) | (z.ve1.x[j * 4 + 1] << 16) | (z.ve1.x[j * 4 + 2] << 8) | z.ve1.x[j * 4 + 3];
 	}
 
 	uint32_t s0[TWO_BRANCHES], s1[TWO_BRANCHES];
 	uint32_t t0[TWO_BRANCHES], t1[TWO_BRANCHES];
 	for (int j = 16; j < 64; j++) {
 		//s0[i] = RIGHTROTATE(w[i][j-15],7) ^ RIGHTROTATE(w[i][j-15],18) ^ (w[i][j-15] >> 3);
-		mpc_RIGHTROTATE2(w[j-15], 7, t0);
+		mpc_RIGHTROTATE2(w[j-15],  7, t0);
 		mpc_RIGHTROTATE2(w[j-15], 18, t1);
 		mpc_XOR2(t0, t1, t0);
 		mpc_RIGHTSHIFT2(w[j-15], 3, t1);
@@ -402,7 +394,7 @@ int verify(a a, int e, z z) {
 		mpc_RIGHTROTATE2(w[j-2], 17, t0);
 		mpc_RIGHTROTATE2(w[j-2], 19, t1);
 		mpc_XOR2(t0, t1, t0);
-		mpc_RIGHTSHIFT2(w[j-2],10,t1);
+		mpc_RIGHTSHIFT2(w[j-2],10, t1);
 		mpc_XOR2(t0, t1, s1);
 
 		//w[i][j] = w[i][j-16]+s0[i]+w[i][j-7]+s1[i];
@@ -428,9 +420,7 @@ int verify(a a, int e, z z) {
 			return 1;
 		}
 	}
-
-
-
+	
 	uint32_t va[TWO_BRANCHES] = { hA[0],hA[0] };
 	uint32_t vb[TWO_BRANCHES] = { hA[1],hA[1] };
 	uint32_t vc[TWO_BRANCHES] = { hA[2],hA[2] };
