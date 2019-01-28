@@ -538,16 +538,16 @@ int main(void) {
 	}
 
 	unsigned char rs[NUM_ROUNDS][NUM_BRANCHES][4]; //filled with random bits
-	unsigned char keys[NUM_ROUNDS][NUM_BRANCHES][16]; //filled with random bits
-	a as[NUM_ROUNDS];
-	View localViews[NUM_ROUNDS][NUM_BRANCHES];
+	unsigned char keys[NUM_ROUNDS][NUM_BRANCHES][16]; //filled with 128 random bits.
+	a as[NUM_ROUNDS]; //commitments from all branches and all rounds
+	View localViews[NUM_ROUNDS][NUM_BRANCHES]; //view per branch and round
 	
-	//Generating keysrs
+	//Generating keys and rs
 	if(RAND_bytes((unsigned char *)keys, NUM_ROUNDS * NUM_BRANCHES * 16) != 1) {
 		printf("RAND_bytes failed crypto, aborting\n");
 		return 0;
 	}
-	if(RAND_bytes((unsigned char *)rs, NUM_ROUNDS * NUM_BRANCHES * 4) != 1) {
+	if(RAND_bytes((unsigned char *)rs,   NUM_ROUNDS * NUM_BRANCHES * 4) != 1) {
 		printf("RAND_bytes failed crypto, aborting\n");
 		return 0;
 	}
@@ -559,65 +559,65 @@ int main(void) {
 		return 0;
 	}
 
-	//fill shares with random values ^ input
+	//fill shares for 3rd branch with input xored by other 2 branches.
 	#pragma omp parallel for
-	for(int k=0; k<NUM_ROUNDS; k++) {
+	for(int round=0; round<NUM_ROUNDS; round++) {
 		for (int j = 0; j < inputLen; j++) { //iterate for the len of the input
-			shares[k][2][j] = input[j] ^ shares[k][0][j] ^ shares[k][1][j];
+			shares[round][2][j] = input[j] ^ shares[round][0][j] ^ shares[round][1][j];
 		}
 	}
 
-	//Generating randomness
+	//Generating randomness for each branch 2912 bytes.
 	unsigned char *randomness[NUM_ROUNDS][NUM_BRANCHES];
 	#pragma omp parallel for
-	for(int k=0; k<NUM_ROUNDS; k++) {
-		for(int j = 0; j< NUM_BRANCHES; j++) {
-			randomness[k][j] = malloc(2912*sizeof(unsigned char)); //why 2912? Answer = ? 
-			getAllRandomness(keys[k][j], randomness[k][j]);
+	for(int round=0; round < NUM_ROUNDS; round++) {
+		for(int j = 0; j < NUM_BRANCHES; j++) {
+			randomness[round][j] = malloc(2912*sizeof(unsigned char)); //why 2912? Answer = ? 
+			getAllRandomness(keys[round][j], randomness[round][j]); //randomness is generated via AES with random keys
 		}
 	}
 
 	//Running MPC-SHA2
 	#pragma omp parallel for
-	for(int k=0; k<NUM_ROUNDS; k++) {
-		as[k] = commit(inputLen, shares[k], randomness[k], rs[k], localViews[k]);
-		for(int j=0; j < NUM_BRANCHES; j++) {
-			free(randomness[k][j]);
+	for(int round=0; round<NUM_ROUNDS; round++) {
+		//calculate COMMITMENTS for each round and branch
+		as[round] = commit(inputLen, shares[round], randomness[round], rs[round], localViews[round]);
+		for(int branch=0; branch < NUM_BRANCHES; branch++) {
+			free(randomness[round][branch]);
 		}
 	}
 
-	//Committing
 	#pragma omp parallel for
-	for(int k=0; k<NUM_ROUNDS; k++) {
+	for(int round=0; round<NUM_ROUNDS; round++) { //calculate hashes for each branch
 		unsigned char hash1[SHA256_DIGEST_LENGTH];
-		H(keys[k][0], localViews[k][0], rs[k][0], (unsigned char *) hash1);
-		memcpy(as[k].h[0], &hash1, 32);
-		H(keys[k][1], localViews[k][1], rs[k][1], (unsigned char *) hash1);
-		memcpy(as[k].h[1], &hash1, 32);
-		H(keys[k][2], localViews[k][2], rs[k][2], (unsigned char *) hash1);
-		memcpy(as[k].h[2], &hash1, 32);
+		H(keys[round][0], localViews[round][0], rs[round][0], (unsigned char *) hash1);
+		memcpy(as[round].h[0], &hash1, 32);
+		H(keys[round][1], localViews[round][1], rs[round][1], (unsigned char *) hash1);
+		memcpy(as[round].h[1], &hash1, 32);
+		H(keys[round][2], localViews[round][2], rs[round][2], (unsigned char *) hash1);
+		memcpy(as[round].h[2], &hash1, 32);
 	}
 
 	//Generating E
 	int es[NUM_ROUNDS];
 	uint32_t finalHash[8];
 	for (int j = 0; j < 8; j++) {
-		finalHash[j] = as[0].yp[0][j]^as[0].yp[1][j]^as[0].yp[2][j];
+		finalHash[j] = as[0].yp[0][j] ^ as[0].yp[1][j] ^ as[0].yp[2][j];
 	}
-	H3(finalHash, as, NUM_ROUNDS, es);
+	H3(finalHash, as, NUM_ROUNDS, es); //Es is calculated by hashing final hash and contains of as
 
 
 	//Packing Z
 	z* zs = malloc(sizeof(z)*NUM_ROUNDS);
 	#pragma omp parallel for
-	for(int i = 0; i < NUM_ROUNDS; i++) {
-		zs[i] = prove(es[i],keys[i],rs[i], localViews[i]);
+	for(int round = 0; round < NUM_ROUNDS; round++) {
+		zs[round] = prove(es[round], keys[round], rs[round], localViews[round]);
 	}
 	
 	
 	//Writing to file
 	FILE *file;
-	char outputFile[3*sizeof(int) + 8];
+	char outputFile[3 * sizeof(int) + 8]; //maximum 3 decimals in number of rounds
 	sprintf(outputFile, "out%i.bin", NUM_ROUNDS);
 	file = fopen(outputFile, "wb");
 	if (!file) {

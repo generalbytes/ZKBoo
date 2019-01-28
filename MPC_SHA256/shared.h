@@ -50,9 +50,9 @@ typedef struct {
 } View;
 
 typedef struct {
-	uint32_t yp[NUM_BRANCHES][8];
+	uint32_t yp[NUM_BRANCHES][8]; //3 parts of the hash must be xored to give result 
 	unsigned char h[NUM_BRANCHES][32]; //possible hashes to compare of z
-} a;
+} a; //commitment (hashes and yp for each branch)
 
 typedef struct {
 	unsigned char ke[16];
@@ -61,7 +61,7 @@ typedef struct {
 	View ve1;
 	unsigned char re[4];
 	unsigned char re1[4];
-} z;
+} z; //proof
 
 #define RIGHTROTATE(x,n) (((x) >> (n)) | ((x) << (32-(n))))
 #define GETBIT(x, i) (((x) >> (i)) & 0x01)
@@ -96,8 +96,7 @@ void getAllRandomness(unsigned char key[16], unsigned char randomness[2912]) {
 
 	EVP_CIPHER_CTX* ctx;
 	ctx = setupAES(key);
-	unsigned char *plaintext =
-			(unsigned char *)"0000000000000000";
+	unsigned char *plaintext = (unsigned char *)"0000000000000000";
 	int len;
 	for(int j=0;j<182;j++) {
 		if(1 != EVP_EncryptUpdate(ctx, &randomness[j*16], &len, plaintext, strlen ((char *)plaintext)))
@@ -420,7 +419,7 @@ int verify(a a, int e, z z) {
 			return 1;
 		}
 	}
-	
+
 	uint32_t va[TWO_BRANCHES] = { hA[0],hA[0] };
 	uint32_t vb[TWO_BRANCHES] = { hA[1],hA[1] };
 	uint32_t vc[TWO_BRANCHES] = { hA[2],hA[2] };
@@ -470,8 +469,6 @@ int verify(a a, int e, z z) {
 			return 1;
 		}
 
-
-
 		t0[0] = k[i];
 		t0[1] = k[i];
 		if(mpc_ADD_verify(t1, t0, t1, z.ve, z.ve1, randomness, randCount, countY) == 1) {
@@ -514,8 +511,6 @@ int verify(a a, int e, z z) {
 #endif
 			return 1;
 		}
-
-
 
 		memcpy(vh, vg, sizeof(uint32_t) * TWO_BRANCHES);
 		memcpy(vg, vf, sizeof(uint32_t) * TWO_BRANCHES);

@@ -67,10 +67,10 @@ int main(void) {
 
 
 	#pragma omp parallel for
-	for(int i = 0; i<NUM_ROUNDS; i++) {
-		int verifyResult = verify(as[i], es[i], zs[i]); //call verify for each round
+	for(int round = 0; round<NUM_ROUNDS; round++) {
+		int verifyResult = verify(as[round], es[round], zs[round]); //call verify for each round
 		if (verifyResult != 0) {
-			printf("Not Verified %d\n", i);
+			printf("Not Verified %d\n", round);
 		}
 	}
 	openmp_thread_cleanup();
