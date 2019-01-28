@@ -555,7 +555,7 @@ int main(void) {
 	}
 
 	//fill shares for 3rd branch with input xored by other 2 branches.
-	#pragma omp parallel for
+//	#pragma omp parallel for
 	for(int round=0; round<NUM_ROUNDS; round++) {
 		for (int j = 0; j < inputLen; j++) { //iterate for the len of the input
 			shares[round][2][j] = input[j] ^ shares[round][0][j] ^ shares[round][1][j];
@@ -564,7 +564,7 @@ int main(void) {
 
 	//Generating randomness for each branch 2912 bytes.
 	unsigned char *randomness[NUM_ROUNDS][NUM_BRANCHES];
-	#pragma omp parallel for
+//	#pragma omp parallel for
 	for(int round=0; round < NUM_ROUNDS; round++) {
 		for(int branch = 0; branch < NUM_BRANCHES; branch++) {
 			randomness[round][branch] = malloc(2912*sizeof(unsigned char)); //why 2912? Answer = ? 
@@ -573,7 +573,7 @@ int main(void) {
 	}
 
 	//Running MPC-SHA2
-	#pragma omp parallel for
+//	#pragma omp parallel for
 	for(int round=0; round < NUM_ROUNDS; round++) {
 		//calculate COMMITMENTS for each round and branch
 		as[round] = commit(inputLen, shares[round], randomness[round], rs[round], localViews[round]);
@@ -582,7 +582,7 @@ int main(void) {
 		}
 	}
 
-	#pragma omp parallel for
+//	#pragma omp parallel for
 	for(int round=0; round<NUM_ROUNDS; round++) { //calculate hashes for each branch
 		unsigned char hash1[SHA256_DIGEST_LENGTH];
 		H(keys[round][0], localViews[round][0], rs[round][0], (unsigned char *) hash1);
