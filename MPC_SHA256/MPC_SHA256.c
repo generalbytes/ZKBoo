@@ -152,7 +152,7 @@ void mpc_ADDK(uint32_t x[NUM_BRANCHES], uint32_t y, uint32_t z[NUM_BRANCHES], un
 }
 
 
-void mpc_RIGHTROTATE(uint32_t x[], int bits, uint32_t z[]) {
+void mpc_RIGHTROTATE(uint32_t x[], int bits, uint32_t z[]) { //rotates with all 3 Xs by number of bits and result is written into z
 	z[0] = RIGHTROTATE(x[0], bits);
 	z[1] = RIGHTROTATE(x[1], bits);
 	z[2] = RIGHTROTATE(x[2], bits);
@@ -295,24 +295,23 @@ int mpc_sha256(unsigned char* results[NUM_BRANCHES], unsigned char* inputs[NUM_B
 	unsigned char* chunks[NUM_BRANCHES];
 	uint32_t w[64][NUM_BRANCHES];
 
-	for (int i = 0; i < NUM_BRANCHES; i++) {
-		chunks[i] = calloc(64, 1); //512 bits
-		memcpy(chunks[i], inputs[i], chars);
-		chunks[i][chars] = 0x80;
+	for (int branch = 0; branch < NUM_BRANCHES; branch++) {
+		chunks[branch] = calloc(64, 1); //512 bits
+		memcpy(chunks[branch], inputs[branch], chars);
+		chunks[branch][chars] = 0x80;
 		//Last 8 chars used for storing length of input without padding, in big-endian.
 		//Since we only care for one block, we are safe with just using last 9 bits and 0'ing the rest
 
 		//chunk[60] = numBits >> 24;
 		//chunk[61] = numBits >> 16;
-		chunks[i][62] = numBits >> 8;
-		chunks[i][63] = numBits;
-		memcpy(views[i].x, chunks[i], 64);
+		chunks[branch][62] = numBits >> 8;
+		chunks[branch][63] = numBits;
+		memcpy(views[branch].x, chunks[branch], 64);
 
 		for (int j = 0; j < 16; j++) {
-			w[j][i] = (chunks[i][j * 4] << 24) | (chunks[i][j * 4 + 1] << 16)
-							| (chunks[i][j * 4 + 2] << 8) | chunks[i][j * 4 + 3];
+			w[j][branch] = (chunks[branch][j * 4] << 24) | (chunks[branch][j * 4 + 1] << 16) | (chunks[branch][j * 4 + 2] << 8) | chunks[branch][j * 4 + 3];
 		}
-		free(chunks[i]);
+		free(chunks[branch]);
 	}
 
 	uint32_t s0[NUM_BRANCHES], s1[NUM_BRANCHES];
@@ -447,7 +446,7 @@ int mpc_sha256(unsigned char* results[NUM_BRANCHES], unsigned char* inputs[NUM_B
 
 
 
-a commit(int numBytes,unsigned char shares[NUM_BRANCHES][numBytes], unsigned char *randomness[NUM_BRANCHES], unsigned char rs[NUM_BRANCHES][4], View views[NUM_BRANCHES]) {
+a commit(int inputLen,unsigned char shares[NUM_BRANCHES][inputLen], unsigned char *randomness[NUM_BRANCHES], unsigned char rs[NUM_BRANCHES][4], View views[NUM_BRANCHES]) {
 	unsigned char* hashes[NUM_BRANCHES];
 	hashes[0] = malloc(32);
 	hashes[1] = malloc(32);
@@ -459,9 +458,11 @@ a commit(int numBytes,unsigned char shares[NUM_BRANCHES][numBytes], unsigned cha
 	inputs[2] = shares[2];
 
 	int* countY = calloc(1, sizeof(int));
-	mpc_sha256(hashes, inputs, numBytes * 8, randomness, views, countY);
+	*countY = 0;
+	mpc_sha256(hashes, inputs, inputLen * 8, randomness, views, countY);
+	//countY is after calling mpc_sha256 728
 
-	//Explicitly add y to view
+	//Last 8 y[728-735] is zero so ltes fill them with 
 	for(int i = 0; i < 8; i++) { //8x32bit = 256bit
 		views[0].y[*countY] = (hashes[0][i * 4] << 24) | (hashes[0][i * 4 + 1] << 16) | (hashes[0][i * 4 + 2] << 8) | hashes[0][i * 4 + 3]; //32bit number
 		views[1].y[*countY] = (hashes[1][i * 4] << 24) | (hashes[1][i * 4 + 1] << 16) | (hashes[1][i * 4 + 2] << 8) | hashes[1][i * 4 + 3]; //32bit number
