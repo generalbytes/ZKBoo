@@ -48,12 +48,12 @@ static const uint32_t k[64] = { 0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
 #define NUM_BRANCHES 3
 #define TWO_BRANCHES 2
 
-typedef struct {
+typedef struct { // step in computation
 	unsigned char x[64];
-	uint32_t y[ySize];
+	uint32_t y[ySize]; //736 32bit values
 } View;
 
-typedef struct {
+typedef struct { //commitment
 	uint32_t yp[NUM_BRANCHES][8]; //3 parts of the hash must be xored to give result 
 	unsigned char h[NUM_BRANCHES][32]; //possible hashes to compare of z
 } a; //commitment (hashes and yp for each branch)
