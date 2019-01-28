@@ -64,8 +64,8 @@ typedef struct {
 } z; //proof
 
 #define RIGHTROTATE(x,n) (((x) >> (n)) | ((x) << (32-(n))))
-#define GETBIT(x, i) (((x) >> (i)) & 0x01)
-#define SETBIT(x, i, b)   x= (b)&1 ? (x)|(1 << (i)) : (x)&(~(1 << (i)))
+#define GETBIT(x, bit) (((x) >> (bit)) & 0x01)
+#define SETBIT(x, bit, b)   x= (b)&1 ? (x)|(1 << (bit)) : (x)&(~(1 << (bit)))
 
 
 void handleErrors(void)
@@ -86,8 +86,6 @@ EVP_CIPHER_CTX* setupAES(unsigned char key[16]) {
 		handleErrors();
 
 	return ctx;
-
-
 }
 
 void getAllRandomness(unsigned char key[16], unsigned char randomness[2912]) {

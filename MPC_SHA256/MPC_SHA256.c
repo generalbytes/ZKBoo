@@ -72,18 +72,19 @@ void mpc_ADD(uint32_t x[NUM_BRANCHES], uint32_t y[NUM_BRANCHES], uint32_t z[NUM_
 	};
 	*randCount += 4;
 
-	uint8_t a[NUM_BRANCHES], b[NUM_BRANCHES];
+	uint8_t a[NUM_BRANCHES];
+	uint8_t b[NUM_BRANCHES];
 	uint8_t t;
 
 	for(int i=0;i<31;i++) //256bits
 	{
-		a[0]=GETBIT(x[0]^c[0],i);
-		a[1]=GETBIT(x[1]^c[1],i);
-		a[2]=GETBIT(x[2]^c[2],i);
+		a[0]=GETBIT(x[0] ^ c[0], i);
+		a[1]=GETBIT(x[1] ^ c[1], i);
+		a[2]=GETBIT(x[2] ^ c[2], i);
 
-		b[0]=GETBIT(y[0]^c[0],i);
-		b[1]=GETBIT(y[1]^c[1],i);
-		b[2]=GETBIT(y[2]^c[2],i);
+		b[0]=GETBIT(y[0] ^ c[0], i);
+		b[1]=GETBIT(y[1] ^ c[1], i);
+		b[2]=GETBIT(y[2] ^ c[2], i);
 
 		t = (a[0]&b[1]) ^ (a[1]&b[0]) ^ GETBIT(r[1],i);
 		SETBIT(c[0],i+1, t ^ (a[0]&b[0]) ^ GETBIT(c[0],i) ^ GETBIT(r[0],i));
@@ -93,8 +94,6 @@ void mpc_ADD(uint32_t x[NUM_BRANCHES], uint32_t y[NUM_BRANCHES], uint32_t z[NUM_
 
 		t = (a[2]&b[0]) ^ (a[0]&b[2]) ^ GETBIT(r[0],i);
 		SETBIT(c[2],i+1, t ^ (a[2]&b[2]) ^ GETBIT(c[2],i) ^ GETBIT(r[2],i));
-
-
 	}
 
 	z[0]=x[0]^y[0]^c[0];
@@ -110,7 +109,7 @@ void mpc_ADD(uint32_t x[NUM_BRANCHES], uint32_t y[NUM_BRANCHES], uint32_t z[NUM_
 
 void mpc_ADDK(uint32_t x[NUM_BRANCHES], uint32_t y, uint32_t z[NUM_BRANCHES], unsigned char *randomness[NUM_BRANCHES], int* randCount, View views[NUM_BRANCHES], int* countY) {  //calling this function increases countY+1 and randCount+4 (countY is index to view's.y)
 	uint32_t c[NUM_BRANCHES] = { 0 };
-	uint32_t r[NUM_BRANCHES] = { 
+	uint32_t r[NUM_BRANCHES] = {
 		getRandom32(randomness[0], *randCount), 
 		getRandom32(randomness[1], *randCount), 
 		getRandom32(randomness[2], *randCount)
@@ -121,29 +120,29 @@ void mpc_ADDK(uint32_t x[NUM_BRANCHES], uint32_t y, uint32_t z[NUM_BRANCHES], un
 
 	uint8_t t;
 
-	for(int i=0;i<31;i++)
+	for(int bit=0;bit<31;bit++)
 	{
-		a[0]=GETBIT(x[0]^c[0],i);
-		a[1]=GETBIT(x[1]^c[1],i);
-		a[2]=GETBIT(x[2]^c[2],i);
+		a[0]=GETBIT(x[0] ^ c[0], bit);
+		a[1]=GETBIT(x[1] ^ c[1], bit);
+		a[2]=GETBIT(x[2] ^ c[2], bit);
 
-		b[0]=GETBIT(y^c[0],i);
-		b[1]=GETBIT(y^c[1],i);
-		b[2]=GETBIT(y^c[2],i);
+		b[0]=GETBIT(y ^ c[0], bit);
+		b[1]=GETBIT(y ^ c[1], bit);
+		b[2]=GETBIT(y ^ c[2], bit);
 
-		t = (a[0]&b[1]) ^ (a[1]&b[0]) ^ GETBIT(r[1],i);
-		SETBIT(c[0],i+1, t ^ (a[0]&b[0]) ^ GETBIT(c[0],i) ^ GETBIT(r[0],i));
+		t = (a[0]&b[1]) ^ (a[1]&b[0]) ^ GETBIT(r[1], bit);
+		SETBIT(c[0],bit+1, t ^ (a[0]&b[0]) ^ GETBIT(c[0], bit) ^ GETBIT(r[0], bit));
 
-		t = (a[1]&b[2]) ^ (a[2]&b[1]) ^ GETBIT(r[2],i);
-		SETBIT(c[1],i+1, t ^ (a[1]&b[1]) ^ GETBIT(c[1],i) ^ GETBIT(r[1],i));
+		t = (a[1]&b[2]) ^ (a[2]&b[1]) ^ GETBIT(r[2], bit);
+		SETBIT(c[1],bit+1, t ^ (a[1]&b[1]) ^ GETBIT(c[1], bit) ^ GETBIT(r[1], bit));
 
-		t = (a[2]&b[0]) ^ (a[0]&b[2]) ^ GETBIT(r[0],i);
-		SETBIT(c[2],i+1, t ^ (a[2]&b[2]) ^ GETBIT(c[2],i) ^ GETBIT(r[2],i));
+		t = (a[2]&b[0]) ^ (a[0]&b[2]) ^ GETBIT(r[0], bit);
+		SETBIT(c[2],bit+1, t ^ (a[2]&b[2]) ^ GETBIT(c[2], bit) ^ GETBIT(r[2], bit));
 	}
 
-	z[0]=x[0]^y^c[0];
-	z[1]=x[1]^y^c[1];
-	z[2]=x[2]^y^c[2];
+	z[0]=x[0] ^ y ^ c[0];
+	z[1]=x[1] ^ y ^ c[1];
+	z[2]=x[2] ^ y ^ c[2];
 
 
 	views[0].y[*countY] = c[0];
@@ -153,16 +152,16 @@ void mpc_ADDK(uint32_t x[NUM_BRANCHES], uint32_t y, uint32_t z[NUM_BRANCHES], un
 }
 
 
-void mpc_RIGHTROTATE(uint32_t x[], int i, uint32_t z[]) {
-	z[0] = RIGHTROTATE(x[0], i);
-	z[1] = RIGHTROTATE(x[1], i);
-	z[2] = RIGHTROTATE(x[2], i);
+void mpc_RIGHTROTATE(uint32_t x[], int bits, uint32_t z[]) {
+	z[0] = RIGHTROTATE(x[0], bits);
+	z[1] = RIGHTROTATE(x[1], bits);
+	z[2] = RIGHTROTATE(x[2], bits);
 }
 
-void mpc_RIGHTSHIFT(uint32_t x[NUM_BRANCHES], int i, uint32_t z[NUM_BRANCHES]) {
-	z[0] = x[0] >> i;
-	z[1] = x[1] >> i;
-	z[2] = x[2] >> i;
+void mpc_RIGHTSHIFT(uint32_t x[NUM_BRANCHES], int bits, uint32_t z[NUM_BRANCHES]) {
+	z[0] = x[0] >> bits;
+	z[1] = x[1] >> bits;
+	z[2] = x[2] >> bits;
 }
 
 void mpc_MAJ(uint32_t a[], uint32_t b[NUM_BRANCHES], uint32_t c[NUM_BRANCHES], uint32_t z[NUM_BRANCHES], unsigned char *randomness[NUM_BRANCHES], int* randCount, View views[NUM_BRANCHES], int* countY) {
@@ -180,9 +179,9 @@ void mpc_CH(uint32_t e[], uint32_t f[NUM_BRANCHES], uint32_t g[NUM_BRANCHES], ui
 	uint32_t t0[NUM_BRANCHES];
 
 	//e & (f^g) ^ g
-	mpc_XOR(f,g,t0);
-	mpc_AND(e,t0,t0, randomness, randCount, views, countY);
-	mpc_XOR(t0,g,z);
+	mpc_XOR(f,  g,  t0);
+	mpc_AND(e,  t0, t0, randomness, randCount, views, countY);
+	mpc_XOR(t0, g,  z);
 }
 
 // int sha256(unsigned char* result, unsigned char* input, int numBits) {
@@ -337,10 +336,9 @@ int mpc_sha256(unsigned char* results[NUM_BRANCHES], unsigned char* inputs[NUM_B
 
 		//w[i][j] = w[i][j-16]+s0[i]+w[i][j-7]+s1[i];
 
-		mpc_ADD(w[j-16], s0, t1, randomness, randCount, views, countY);
-		mpc_ADD(w[j-7], t1, t1 , randomness, randCount, views, countY);
-		mpc_ADD(t1, s1, w[j]   , randomness, randCount, views, countY);
-
+		mpc_ADD(w[j-16], s0, t1   , randomness, randCount, views, countY);
+		mpc_ADD(w[j-7],  t1, t1   , randomness, randCount, views, countY);
+		mpc_ADD(t1,      s1, w[j] , randomness, randCount, views, countY);
 	}
 
 	uint32_t a[NUM_BRANCHES] = { hA[0], hA[0], hA[0] };
@@ -355,7 +353,7 @@ int mpc_sha256(unsigned char* results[NUM_BRANCHES], unsigned char* inputs[NUM_B
 
 	for (int i = 0; i < 64; i++) {
 		//s1 = RIGHTROTATE(e,6) ^ RIGHTROTATE(e,11) ^ RIGHTROTATE(e,25);
-		mpc_RIGHTROTATE(e, 6, t0);
+		mpc_RIGHTROTATE(e, 6,  t0);
 		mpc_RIGHTROTATE(e, 11, t1);
 		mpc_XOR(t0, t1, t0);
 
@@ -462,16 +460,11 @@ a commit(int numBytes,unsigned char shares[NUM_BRANCHES][numBytes], unsigned cha
 	int* countY = calloc(1, sizeof(int));
 	mpc_sha256(hashes, inputs, numBytes * 8, randomness, views, countY);
 
-
 	//Explicitly add y to view
 	for(int i = 0; i<8; i++) {
-		views[0].y[*countY] = 		(hashes[0][i * 4] << 24) | (hashes[0][i * 4 + 1] << 16)
-											| (hashes[0][i * 4 + 2] << 8) | hashes[0][i * 4 + 3];
-
-		views[1].y[*countY] = 		(hashes[1][i * 4] << 24) | (hashes[1][i * 4 + 1] << 16)
-											| (hashes[1][i * 4 + 2] << 8) | hashes[1][i * 4 + 3];
-		views[2].y[*countY] = 		(hashes[2][i * 4] << 24) | (hashes[2][i * 4 + 1] << 16)
-											| (hashes[2][i * 4 + 2] << 8) | hashes[2][i * 4 + 3];
+		views[0].y[*countY] = (hashes[0][i * 4] << 24) | (hashes[0][i * 4 + 1] << 16) | (hashes[0][i * 4 + 2] << 8) | hashes[0][i * 4 + 3];
+		views[1].y[*countY] = (hashes[1][i * 4] << 24) | (hashes[1][i * 4 + 1] << 16) | (hashes[1][i * 4 + 2] << 8) | hashes[1][i * 4 + 3];
+		views[2].y[*countY] = (hashes[2][i * 4] << 24) | (hashes[2][i * 4 + 1] << 16) | (hashes[2][i * 4 + 2] << 8) | hashes[2][i * 4 + 3];
 		*countY += 1;
 	}
 	free(countY);
@@ -480,10 +473,11 @@ a commit(int numBytes,unsigned char shares[NUM_BRANCHES][numBytes], unsigned cha
 	free(hashes[2]);
 
 	uint32_t* result1 = malloc(32);
-	output(views[0], result1);
 	uint32_t* result2 = malloc(32);
-	output(views[1], result2);
 	uint32_t* result3 = malloc(32);
+
+	output(views[0], result1);
+	output(views[1], result2);
 	output(views[2], result3);
 
 	a a;
@@ -537,7 +531,7 @@ int main(void) {
 		input[j] = userInput[j];
 	}
 
-	unsigned char rs[NUM_ROUNDS][NUM_BRANCHES][4]; //filled with random bits
+	unsigned char rs  [NUM_ROUNDS][NUM_BRANCHES][4]; //filled with random bits
 	unsigned char keys[NUM_ROUNDS][NUM_BRANCHES][16]; //filled with 128 random bits.
 	a as[NUM_ROUNDS]; //commitments from all branches and all rounds
 	View localViews[NUM_ROUNDS][NUM_BRANCHES]; //view per branch and round
