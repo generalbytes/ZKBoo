@@ -63,7 +63,7 @@ int main(void) {
 	printf("\n");
 
 	int es[NUM_ROUNDS];
-	H3(y, as, NUM_ROUNDS, es); //calculate Es for all rounds
+	calculateEs(y, as, NUM_ROUNDS, es); //calculate Es for all rounds
 
 
 //	#pragma omp parallel for

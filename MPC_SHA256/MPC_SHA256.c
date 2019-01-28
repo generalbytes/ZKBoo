@@ -511,11 +511,11 @@ a commit(int inputLen,unsigned char shares[NUM_BRANCHES][inputLen], unsigned cha
 
 z prove(int e, unsigned char keys[NUM_BRANCHES][16], unsigned char rs[NUM_BRANCHES][4], View views[NUM_BRANCHES]) {
 	z z;
-	memcpy(z.ke, keys[e], 16);
+	memcpy(z.ke0, keys[(e + 0) % NUM_BRANCHES], 16);
 	memcpy(z.ke1, keys[(e + 1) % NUM_BRANCHES], 16);
-	z.ve = views[e];
+	z.ve0 = views[(e + 0) % NUM_BRANCHES];
 	z.ve1 = views[(e + 1) % NUM_BRANCHES];
-	memcpy(z.re, rs[e], 4);
+	memcpy(z.re0, rs[(e + 0) % NUM_BRANCHES], 4);
 	memcpy(z.re1, rs[(e + 1) % NUM_BRANCHES], 4);
 	return z;
 }
@@ -591,7 +591,7 @@ int main(void) {
 	//Running MPC-SHA2
 //	#pragma omp parallel for
 	for(int round=0; round < NUM_ROUNDS; round++) {
-		//calculate COMMITMENTS for each round and branch
+		//calculate COMMITMENTS (views) for each round and branch
 		as[round] = commit(inputLen, shares[round], randomness[round], localViews[round]);
 		for(int branch=0; branch < NUM_BRANCHES; branch++) {
 			free(randomness[round][branch]); //free randomness it will no longer be neeed 
@@ -601,25 +601,26 @@ int main(void) {
 //	#pragma omp parallel for
 	for(int round=0; round<NUM_ROUNDS; round++) { //calculate hashes for each branch
 		unsigned char hash1[SHA256_DIGEST_LENGTH];
-		H(keys[round][0], localViews[round][0], rs[round][0], (unsigned char *) hash1);
+		calculateHashForBranch(keys[round][0], localViews[round][0], rs[round][0], (unsigned char *) hash1); //calulate hash of whole branch including views
 		memcpy(as[round].h[0], &hash1, 32);
-		H(keys[round][1], localViews[round][1], rs[round][1], (unsigned char *) hash1);
+
+		calculateHashForBranch(keys[round][1], localViews[round][1], rs[round][1], (unsigned char *) hash1);
 		memcpy(as[round].h[1], &hash1, 32);
-		H(keys[round][2], localViews[round][2], rs[round][2], (unsigned char *) hash1);
+
+		calculateHashForBranch(keys[round][2], localViews[round][2], rs[round][2], (unsigned char *) hash1);
 		memcpy(as[round].h[2], &hash1, 32);
 	}
 
 	//Generating E
 	int es[NUM_ROUNDS];
 	uint32_t finalHash[8];
-	for (int j = 0; j < 8; j++) {
+	for (int j = 0; j < 8; j++) { //yes this is how the final hash is calculated
 		finalHash[j] = as[0].yp[0][j] ^ as[0].yp[1][j] ^ as[0].yp[2][j];
 	}
-	H3(finalHash, as, NUM_ROUNDS, es); //Es is calculated by hashing final hash and contains of as
-
+	calculateEs(finalHash, as, NUM_ROUNDS, es); //Es is calculated by hashing final hash and contains of as (e is id of a branch to be picked)
 
 	//Packing Z
-	z* zs = malloc(sizeof(z)*NUM_ROUNDS);
+	z* zs = malloc(sizeof(z) * NUM_ROUNDS);
 //	#pragma omp parallel for
 	for(int round = 0; round < NUM_ROUNDS; round++) {
 		zs[round] = prove(es[round], keys[round], rs[round], localViews[round]);
